@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+
+{% block title %}System Reports - CrowdMuse{% endblock %}
+
+{% block page_title %}System Reports{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+  <div class="admin-section">
+    <h2>System Reports</h2>
+    
+    <div class="report-summary">
+      <div class="report-card">
+        <h3>Total Students</h3>
+        <p class="big-number">{{ students|length }}</p>
+      </div>
+      
+      <div class="report-card">
+        <h3>Total Attendance Records</h3>
+        <p class="big-number">
+          {% set total_records = 0 %}
+          {% for date_str, records in attendance_records.items() %}
+            {% set total_records = total_records + records|length %}
+          {% endfor %}
+          {{ total_records }}
+        </p>
+      </div>
+      
+      <div class="report-card">
+        <h3>Days with Records</h3>
+        <p class="big-number">{{ attendance_records|length }}</p>
+      </div>
+    </div>
+
+    <h3>Attendance Summary by Student</h3>
+    {% if students and attendance_records %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Roll Number</th>
+            <th>Present</th>
+            <th>Absent</th>
+            <th>Total Days</th>
+            <th>Percentage</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for student in students %}
+            {% set present = 0 %}
+            {% set absent = 0 %}
+            {% for date_str, records in attendance_records.items() %}
+              {% if student.id|string in records %}
+                {% if records[student.id|string] == 'present' %}
+                  {% set present = present + 1 %}
+                {% elif records[student.id|string] == 'absent' %}
+                  {% set absent = absent + 1 %}
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+            <tr>
+              <td>{{ student.name }}</td>
+              <td>{{ student.roll_no }}</td>
+              <td>{{ present }}</td>
+              <td>{{ absent }}</td>
+              <td>{{ present + absent }}</td>
+              <td>
+                {% if present + absent > 0 %}
+                  {{ ((present / (present + absent)) * 100)|round(1) }}%
+                {% else %}
+                  N/A
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No data available yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

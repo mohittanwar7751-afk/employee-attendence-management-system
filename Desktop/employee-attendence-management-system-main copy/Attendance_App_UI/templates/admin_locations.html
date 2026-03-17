@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Campus Locations - CrowdMuse{% endblock %}
+
+{% block page_title %}Manage Campus Locations{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+  <div class="admin-section">
+    <h2>Campus Locations</h2>
+    {% if locations %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Location Name</th>
+            <th>Building</th>
+            <th>Floor</th>
+            <th>Max Capacity</th>
+            <th>Current Count</th>
+            <th>Occupancy %</th>
+            <th>Camera ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for location in locations %}
+            {% set occupancy = ((location.current_count / location.max_capacity) * 100)|round(1) if location.max_capacity > 0 else 0 %}
+            <tr>
+              <td>{{ location.name }}</td>
+              <td>{{ location.building }}</td>
+              <td>{{ location.floor }}</td>
+              <td>{{ location.max_capacity }}</td>
+              <td>{{ location.current_count }}</td>
+              <td>{{ occupancy }}%</td>
+              <td>{{ location.camera_id }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No campus locations configured.</p>
+    {% endif %}
+  </div>
+{% endblock %}

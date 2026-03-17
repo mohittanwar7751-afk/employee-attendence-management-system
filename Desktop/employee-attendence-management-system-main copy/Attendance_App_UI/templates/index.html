@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome - CrowdMuse</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    if (localStorage.getItem('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+    }
+  </script>
+</head>
+<body class="auth-body">
+
+  <div class="auth-card">
+    <div class="auth-header">
+      <div class="logo-large">
+        <i class="fas fa-layer-group"></i>
+        <span>CrowdMuse</span>
+      </div>
+      <p class="auth-subtitle">Welcome — choose how you'd like to continue</p>
+    </div>
+
+    <div class="auth-form" style="display:flex; gap:12px; justify-content:center;">
+      <a class="btn-block btn-primary" href="{{ url_for('login') }}">Student Login</a>
+      <a class="btn-block btn-secondary" href="{{ url_for('admin_login') }}">Admin Login</a>
+    </div>
+
+    <div class="auth-footer" style="margin-top:16px; text-align:center;">
+      <p>Need an admin account? <a href="{{ url_for('admin_register') }}">Create Admin Account</a></p>
+    </div>
+  </div>
+
+</body>
+</html>

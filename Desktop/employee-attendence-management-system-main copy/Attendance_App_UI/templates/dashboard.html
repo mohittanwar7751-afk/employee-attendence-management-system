@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - My Attendance{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block user_name %}{{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <div class="student-avatar-large">
+                {{ student.name[:1] }}
+            </div>
+            <div class="welcome-text">
+                <h2>Welcome back, {{ student.name }}!</h2>
+                <p class="student-info">
+                    <span class="roll-badge">{{ student.roll_no }}</span>
+                    <span class="separator">•</span>
+                    <span>{{ student.email }}</span>
+                </p>
+            </div>
+        </div>
+        <div class="today-status-card status-{{ stats.today_status }}">
+            <div class="status-icon">
+                {% if stats.today_status == 'present' %}
+                    <i class="fas fa-check-circle"></i>
+                {% elif stats.today_status == 'absent' %}
+                    <i class="fas fa-times-circle"></i>
+                {% else %}
+                    <i class="fas fa-clock"></i>
+                {% endif %}
+            </div>
+            <div class="status-content">
+                <h3>
+                    {% if stats.today_status == 'present' %}
+                        Present Today
+                    {% elif stats.today_status == 'absent' %}
+                        Absent Today
+                    {% else %}
+                        Not Marked
+                    {% endif %}
+                </h3>
+                <p>{{ formatted_date }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total-days">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.total_days }}</h3>
+                <p>Total Days</p>
+            </div>
+        </div>
+
+        <div class="stat-card present-days">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.present_days }}</h3>
+                <p>Present Days</p>
+            </div>
+        </div>
+
+        <div class="stat-card absent-days">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.absent_days }}</h3>
+                <p>Absent Days</p>
+            </div>
+        </div>
+
+        <div class="stat-card attendance-rate">
+            <div class="stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.attendance_percentage }}%</h3>
+                <p>Attendance Rate</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-actions-section">
+        <h2>Quick Actions</h2>
+        <div class="quick-actions">
+            <a href="{{ url_for('attendance') }}" class="action-card view-attendance">
+                <i class="fas fa-calendar-check"></i>
+                <div class="action-content">
+                    <h3>View My Attendance</h3>
+                    <p>Check your attendance history and records</p>
+                </div>
+                <i class="fas fa-arrow-right action-arrow"></i>
+            </a>
+
+            <a href="{{ url_for('reports') }}" class="action-card view-reports">
+                <i class="fas fa-chart-line"></i>
+                <div class="action-content">
+                    <h3>View Reports</h3>
+                    <p>See detailed attendance analytics and trends</p>
+                </div>
+                <i class="fas fa-arrow-right action-arrow"></i>
+            </a>
+
+            <a href="{{ url_for('campus') }}" class="action-card view-campus">
+                <i class="fas fa-map-marker-alt"></i>
+                <div class="action-content">
+                    <h3>Campus Locations</h3>
+                    <p>Check crowd levels at different campus areas</p>
+                </div>
+                <i class="fas fa-arrow-right action-arrow"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Attendance Summary -->
+    <div class="attendance-summary-section">
+        <h2>Attendance Summary</h2>
+        <div class="summary-card">
+            <div class="summary-visual">
+                <div class="attendance-circle">
+                    <svg class="progress-ring" width="200" height="200">
+                        <circle class="progress-ring-circle-bg" cx="100" cy="100" r="90"></circle>
+                        <circle class="progress-ring-circle" 
+                                cx="100" cy="100" r="90"
+                                style="stroke-dashoffset: {{ 565 - (565 * stats.attendance_percentage / 100) }}"></circle>
+                    </svg>
+                    <div class="circle-content">
+                        <span class="percentage-large">{{ stats.attendance_percentage }}%</span>
+                        <span class="percentage-label">Overall</span>
+                    </div>
+                </div>
+            </div>
+            <div class="summary-details">
+                <div class="detail-row">
+                    <span class="detail-label">Total Days:</span>
+                    <span class="detail-value">{{ stats.total_days }}</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label present">Present:</span>
+                    <span class="detail-value">{{ stats.present_days }} days</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label absent">Absent:</span>
+                    <span class="detail-value">{{ stats.absent_days }} days</span>
+                </div>
+                <div class="detail-row">
+                    <span class="detail-label">Today's Status:</span>
+                    <span class="detail-value status-badge-inline status-{{ stats.today_status }}">
+                        {% if stats.today_status == 'present' %}
+                            Present
+                        {% elif stats.today_status == 'absent' %}
+                            Absent
+                        {% else %}
+                            Not Marked
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="recent-activity-section">
+        <h2>Recent Activity</h2>
+        <div class="activity-list">
+            {% if stats.today_status != 'not_marked' %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-check text-success"></i>
+                </div>
+                <div class="activity-content">
+                    <p><strong>Today's attendance</strong> is marked as 
+                        <span class="status-text status-{{ stats.today_status }}">
+                            {% if stats.today_status == 'present' %}Present{% else %}Absent{% endif %}
+                        </span>
+                    </p>
+                    <small class="text-muted">{{ formatted_date }}</small>
+                </div>
+            </div>
+            {% else %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-clock text-warning"></i>
+                </div>
+                <div class="activity-content">
+                    <p><strong>Today's attendance</strong> has not been marked yet</p>
+                    <small class="text-muted">{{ formatted_date }}</small>
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-chart-line text-info"></i>
+                </div>
+                <div class="activity-content">
+                    <p><strong>Your attendance rate</strong> is {{ stats.attendance_percentage }}%</p>
+                    <small class="text-muted">
+                        {% if stats.attendance_percentage >= 90 %}
+                            Excellent! Keep it up!
+                        {% elif stats.attendance_percentage >= 75 %}
+                            Good attendance record
+                        {% elif stats.attendance_percentage >= 60 %}
+                            Needs improvement
+                        {% else %}
+                            Please improve your attendance
+                        {% endif %}
+                    </small>
+                </div>
+            </div>
+
+            {% if stats.present_days > 0 %}
+            <div class="activity-item">
+                <div class="activity-icon">
+                    <i class="fas fa-calendar-check text-success"></i>
+                </div>
+                <div class="activity-content">
+                    <p><strong>{{ stats.present_days }} days</strong> marked as present</p>
+                    <small class="text-muted">Out of {{ stats.total_days }} total days</small>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animate stats cards on load
+        const statCards = document.querySelectorAll('.stat-card');
+        statCards.forEach((card, index) => {
+            setTimeout(() => {
+                card.style.opacity = '1';
+                card.style.transform = 'translateY(0)';
+            }, index * 100);
+        });
+    });
+</script>
+{% endblock %}

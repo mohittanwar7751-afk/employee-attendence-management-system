@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Campus Locations - Attendance Management{% endblock %}
+{% block page_title %}Campus Locations{% endblock %}
+
+{% block content %}
+<div class="campus-container">
+    <!-- Header Section -->
+    <div class="campus-header">
+        <div class="header-info">
+            <h2>Campus Crowd Monitoring</h2>
+            <p>Real-time occupancy tracking across all campus locations</p>
+        </div>
+        
+        <div class="header-actions">
+            <button class="btn btn-outline" id="refreshCrowd">
+                <i class="fas fa-sync-alt"></i>
+                Refresh Data
+            </button>
+            <button class="btn btn-primary" id="autoRefresh">
+                <i class="fas fa-clock"></i>
+                <span id="autoRefreshText">Auto Refresh: OFF</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Overall Statistics -->
+    <div class="overall-stats-campus">
+        <div class="stat-card-campus total-locations">
+            <div class="stat-icon-campus">
+                <i class="fas fa-map-marker-alt"></i>
+            </div>
+            <div class="stat-content-campus">
+                <h3>{{ stats.total_locations }}</h3>
+                <p>Total Locations</p>
+            </div>
+        </div>
+
+        <div class="stat-card-campus total-capacity">
+            <div class="stat-icon-campus">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content-campus">
+                <h3>{{ stats.total_capacity }}</h3>
+                <p>Total Capacity</p>
+            </div>
+        </div>
+
+        <div class="stat-card-campus current-occupancy">
+            <div class="stat-icon-campus">
+                <i class="fas fa-user-check"></i>
+            </div>
+            <div class="stat-content-campus">
+                <h3>{{ stats.total_current }}</h3>
+                <p>Current Occupancy</p>
+            </div>
+        </div>
+
+        <div class="stat-card-campus occupancy-rate">
+            <div class="stat-icon-campus">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content-campus">
+                <h3>{{ stats.overall_occupancy }}%</h3>
+                <p>Overall Occupancy Rate</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Locations Grid -->
+    <div class="locations-grid" id="locationsGrid">
+        {% for location in locations %}
+        <div class="location-card" data-location-id="{{ location.id }}">
+            <div class="location-header">
+                <div class="location-icon" style="background: {{ location.color }}20; color: {{ location.color }};">
+                    <i class="{{ location.icon }}"></i>
+                </div>
+                <div class="location-title">
+                    <h3>{{ location.name }}</h3>
+                    <p class="location-details">
+                        <i class="fas fa-building"></i> {{ location.building }}
+                        <span class="separator">•</span>
+                        <i class="fas fa-layer-group"></i> {{ location.floor }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="location-body">
+                <div class="occupancy-info">
+                    <div class="occupancy-numbers">
+                        <div class="current-count">
+                            <span class="count-value" id="count-{{ location.id }}">{{ location.current_count }}</span>
+                            <span class="count-label">Current</span>
+                        </div>
+                        <div class="max-capacity">
+                            <span class="count-value">{{ location.max_capacity }}</span>
+                            <span class="count-label">Maximum</span>
+                        </div>
+                    </div>
+
+                    <div class="occupancy-bar-container">
+                        <div class="occupancy-bar">
+                            <div class="occupancy-fill" 
+                                 id="fill-{{ location.id }}"
+                                 style="width: {{ (location.current_count / location.max_capacity * 100) }}%; background: {{ location.color }};"
+                                 data-percentage="{{ (location.current_count / location.max_capacity * 100) }}"></div>
+                        </div>
+                        <div class="occupancy-percentage" id="percentage-{{ location.id }}">
+                            {{ "%.1f"|format((location.current_count / location.max_capacity * 100)) }}%
+                        </div>
+                    </div>
+                </div>
+
+                <div class="location-status">
+                    {% set occupancy_pct = (location.current_count / location.max_capacity * 100) %}
+                    {% if occupancy_pct >= 90 %}
+                        <span class="status-badge critical">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            Critical
+                        </span>
+                    {% elif occupancy_pct >= 75 %}
+                        <span class="status-badge warning">
+                            <i class="fas fa-exclamation-circle"></i>
+                            High
+                        </span>
+                    {% elif occupancy_pct >= 50 %}
+                        <span class="status-badge moderate">
+                            <i class="fas fa-info-circle"></i>
+                            Moderate
+                        </span>
+                    {% else %}
+                        <span class="status-badge good">
+                            <i class="fas fa-check-circle"></i>
+                            Good
+                        </span>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="location-footer">
+                <div class="camera-info">
+                    <i class="fas fa-video"></i>
+                    <span>{{ location.camera_id }}</span>
+                </div>
+                <div class="last-update" id="update-{{ location.id }}">
+                    <i class="fas fa-clock"></i>
+                    <span>Just now</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State (if no locations) -->
+    {% if not locations %}
+    <div class="empty-state">
+        <i class="fas fa-map-marker-alt"></i>
+        <h3>No locations configured</h3>
+        <p>Add campus locations to start monitoring crowd levels</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Location Detail Modal -->
+<div id="locationDetailModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalLocationName">Location Details</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="location-detail-info">
+                <div class="detail-item">
+                    <label>Building:</label>
+                    <span id="modalBuilding">-</span>
+                </div>
+                <div class="detail-item">
+                    <label>Floor:</label>
+                    <span id="modalFloor">-</span>
+                </div>
+                <div class="detail-item">
+                    <label>Camera ID:</label>
+                    <span id="modalCameraId">-</span>
+                </div>
+                <div class="detail-item">
+                    <label>Current Occupancy:</label>
+                    <span id="modalCurrentCount">-</span>
+                </div>
+                <div class="detail-item">
+                    <label>Maximum Capacity:</label>
+                    <span id="modalMaxCapacity">-</span>
+                </div>
+                <div class="detail-item">
+                    <label>Occupancy Rate:</label>
+                    <span id="modalOccupancyRate">-</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeLocationModal()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let autoRefreshInterval = null;
+let autoRefreshEnabled = false;
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+    // Auto-refresh every 30 seconds
+    startAutoRefresh();
+});
+
+function setupEventListeners() {
+    // Refresh button
+    document.getElementById('refreshCrowd').addEventListener('click', refreshCrowdData);
+    
+    // Auto-refresh toggle
+    document.getElementById('autoRefresh').addEventListener('click', toggleAutoRefresh);
+    
+    // Location card clicks
+    document.querySelectorAll('.location-card').forEach(card => {
+        card.addEventListener('click', function() {
+            const locationId = this.dataset.locationId;
+            showLocationDetails(locationId);
+        });
+    });
+    
+    // Modal close
+    document.querySelector('.modal-close').addEventListener('click', closeLocationModal);
+}
+
+async function refreshCrowdData() {
+    const refreshBtn = document.getElementById('refreshCrowd');
+    const originalHtml = refreshBtn.innerHTML;
+    
+    refreshBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Refreshing...';
+    refreshBtn.disabled = true;
+    
+    try {
+        const response = await fetch('/api/crowd_status');
+        const data = await response.json();
+        
+        if (data.success) {
+            updateLocationCards(data.locations);
+            showToast('Crowd data refreshed successfully', 'success');
+        } else {
+            showToast('Error refreshing data', 'error');
+        }
+    } catch (error) {
+        console.error('Error refreshing crowd data:', error);
+        showToast('Error refreshing data. Please try again.', 'error');
+    } finally {
+        refreshBtn.innerHTML = originalHtml;
+        refreshBtn.disabled = false;
+    }
+}
+
+function updateLocationCards(locations) {
+    locations.forEach(location => {
+        const occupancyPct = (location.current_count / location.max_capacity * 100).toFixed(1);
+        
+        // Update count
+        const countElement = document.getElementById(`count-${location.id}`);
+        if (countElement) {
+            countElement.textContent = location.current_count;
+        }
+        
+        // Update progress bar
+        const fillElement = document.getElementById(`fill-${location.id}`);
+        if (fillElement) {
+            fillElement.style.width = `${occupancyPct}%`;
+            fillElement.dataset.percentage = occupancyPct;
+        }
+        
+        // Update percentage
+        const percentageElement = document.getElementById(`percentage-${location.id}`);
+        if (percentageElement) {
+            percentageElement.textContent = `${occupancyPct}%`;
+        }
+        
+        // Update status badge
+        updateStatusBadge(location.id, occupancyPct);
+        
+        // Update timestamp
+        const updateElement = document.getElementById(`update-${location.id}`);
+        if (updateElement) {
+            const now = new Date();
+            updateElement.querySelector('span').textContent = 'Just now';
+        }
+    });
+}
+
+function updateStatusBadge(locationId, occupancyPct) {
+    const card = document.querySelector(`[data-location-id="${locationId}"]`);
+    if (!card) return;
+    
+    const statusBadge = card.querySelector('.status-badge');
+    if (!statusBadge) return;
+    
+    const pct = parseFloat(occupancyPct);
+    
+    // Remove all status classes
+    statusBadge.className = 'status-badge';
+    
+    if (pct >= 90) {
+        statusBadge.className = 'status-badge critical';
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-triangle"></i> Critical';
+    } else if (pct >= 75) {
+        statusBadge.className = 'status-badge warning';
+        statusBadge.innerHTML = '<i class="fas fa-exclamation-circle"></i> High';
+    } else if (pct >= 50) {
+        statusBadge.className = 'status-badge moderate';
+        statusBadge.innerHTML = '<i class="fas fa-info-circle"></i> Moderate';
+    } else {
+        statusBadge.className = 'status-badge good';
+        statusBadge.innerHTML = '<i class="fas fa-check-circle"></i> Good';
+    }
+}
+
+function toggleAutoRefresh() {
+    autoRefreshEnabled = !autoRefreshEnabled;
+    const btn = document.getElementById('autoRefresh');
+    const text = document.getElementById('autoRefreshText');
+    
+    if (autoRefreshEnabled) {
+        startAutoRefresh();
+        text.textContent = 'Auto Refresh: ON';
+        btn.classList.add('active');
+        showToast('Auto-refresh enabled', 'success');
+    } else {
+        stopAutoRefresh();
+        text.textContent = 'Auto Refresh: OFF';
+        btn.classList.remove('active');
+        showToast('Auto-refresh disabled', 'info');
+    }
+}
+
+function startAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+    }
+    
+    autoRefreshInterval = setInterval(() => {
+        if (autoRefreshEnabled) {
+            refreshCrowdData();
+        }
+    }, 30000); // Refresh every 30 seconds
+}
+
+function stopAutoRefresh() {
+    if (autoRefreshInterval) {
+        clearInterval(autoRefreshInterval);
+        autoRefreshInterval = null;
+    }
+}
+
+function showLocationDetails(locationId) {
+    const card = document.querySelector(`[data-location-id="${locationId}"]`);
+    if (!card) return;
+    
+    const name = card.querySelector('h3').textContent;
+    const building = card.querySelector('.location-details').textContent.split('•')[0].trim();
+    const floor = card.querySelector('.location-details').textContent.split('•')[1].trim();
+    const cameraId = card.querySelector('.camera-info span').textContent;
+    const currentCount = document.getElementById(`count-${locationId}`).textContent;
+    const maxCapacity = card.querySelector('.max-capacity .count-value').textContent;
+    const occupancyPct = document.getElementById(`percentage-${locationId}`).textContent;
+    
+    document.getElementById('modalLocationName').textContent = name;
+    document.getElementById('modalBuilding').textContent = building.replace('🏢', '').trim();
+    document.getElementById('modalFloor').textContent = floor.replace('📁', '').trim();
+    document.getElementById('modalCameraId').textContent = cameraId;
+    document.getElementById('modalCurrentCount').textContent = currentCount;
+    document.getElementById('modalMaxCapacity').textContent = maxCapacity;
+    document.getElementById('modalOccupancyRate').textContent = occupancyPct;
+    
+    document.getElementById('locationDetailModal').style.display = 'block';
+}
+
+function closeLocationModal() {
+    document.getElementById('locationDetailModal').style.display = 'none';
+}
+
+// Simulate camera updates (for demo purposes)
+// In production, this would be called by actual camera systems
+function simulateCameraUpdate(locationId, count) {
+    fetch('/api/crowd_update', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            location_id: locationId,
+            count: count,
+            camera_id: `CAM-${String(locationId).padStart(3, '0')}`
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const location = data.location;
+            updateLocationCards([location]);
+        }
+    })
+    .catch(error => {
+        console.error('Error updating crowd:', error);
+    });
+}
+
+// Initialize auto-refresh on page load
+window.addEventListener('beforeunload', function() {
+    stopAutoRefresh();
+});
+</script>
+{% endblock %}

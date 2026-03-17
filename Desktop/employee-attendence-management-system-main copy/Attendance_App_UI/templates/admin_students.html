@@ -1,0 +1,41 @@
+{% extends 'base.html' %}
+
+{% block title %}Manage Students - CrowdMuse{% endblock %}
+
+{% block page_title %}Manage Students{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <h2>All Students</h2>
+    {% if students %}
+        <div style="background: var(--bg-primary); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);">
+            <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                <thead style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
+                    <tr>
+                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">ID</th>
+                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Name</th>
+                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Roll Number</th>
+                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr style="border-bottom: 1px solid var(--border-color); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'">
+                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.id }}</td>
+                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.name }}</td>
+                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.roll_no }}</td>
+                            <td style="padding: var(--spacing-lg); color: var(--text-secondary);">{{ student.email }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
+            <p>No students registered yet.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

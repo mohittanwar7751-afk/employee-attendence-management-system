@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+
+{% block title %}Weekly Class Schedule - CrowdMuse{% endblock %}
+
+{% block page_title %}Weekly Class Schedule{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="quick-links">
+        <h3>
+            Classes for {{ week_start.strftime('%b %d, %Y') }}  {{ week_end.strftime('%b %d, %Y') }}
+        </h3>
+        <p style="margin-top: 6px; color: var(--text-secondary);">
+            View scheduled classes for the current week and mark attendance per class.
+        </p>
+
+        {% if weekly_classes %}
+            <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+                {% for cls in weekly_classes %}
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;">
+                            <div>
+                                <h3 style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">
+                                    {{ cls.subject }}
+                                </h3>
+                                <p style="margin-top: 6px; color: var(--text-secondary);">
+                                    <i class="fas fa-calendar"></i>
+                                    <span style="margin-left: 6px;">{{ cls.formatted_date }} ({{ cls.date }})</span>
+                                </p>
+                                <p style="margin-top: 4px; color: var(--text-secondary);">
+                                    <i class="fas fa-clock"></i>
+                                    <span style="margin-left: 6px;">{{ cls.time }}</span>
+                                </p>
+                            </div>
+
+                            <a href="{{ url_for('admin_mark_attendance_view', class_id=cls.id) }}" class="btn btn-primary" style="white-space: nowrap;">
+                                <i class="fas fa-eye"></i> View
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-top: 16px; text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
+                <p>No classes scheduled for this week yet.</p>
+                <p style="margin-top: 6px; font-size: 0.9rem;">
+                    Tip: Add items to <code>data.json</code> under <code>classes</code> and <code>enrollments</code>.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

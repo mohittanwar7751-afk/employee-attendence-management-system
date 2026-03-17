@@ -1,0 +1,59 @@
+{
+    "admins": [
+        {
+            "id": 1,
+            "username": "admin",
+            "password": "admin"
+        },
+        {
+            "id": 2,
+            "username": "Rakshit",
+            "password": "Password"
+        }
+    ],
+    "students": [
+        {
+            "id": 1,
+            "name": "Demo User",
+            "roll_no": "DEMO01",
+            "email": "demo@example.com",
+            "password": "password"
+        }
+    ],
+    "attendance": {},
+    "locations": [
+        {
+            "id": 1,
+            "name": "Main Library",
+            "building": "Library",
+            "floor": "Ground",
+            "max_capacity": 200,
+            "current_count": 45,
+            "camera_id": "CAM-001",
+            "icon": "fas fa-book",
+            "color": "#3b82f6"
+        },
+        {
+            "id": 2,
+            "name": "Computer Lab",
+            "building": "Science Block",
+            "floor": "2nd",
+            "max_capacity": 50,
+            "current_count": 12,
+            "camera_id": "CAM-002",
+            "icon": "fas fa-laptop",
+            "color": "#10b981"
+        },
+        {
+            "id": 3,
+            "name": "Cafeteria",
+            "building": "Student Center",
+            "floor": "Ground",
+            "max_capacity": 150,
+            "current_count": 89,
+            "camera_id": "CAM-004",
+            "icon": "fas fa-utensils",
+            "color": "#ef4444"
+        }
+    ]
+}

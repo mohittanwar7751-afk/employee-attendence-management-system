@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}My Attendance - Attendance Management{% endblock %}
+{% block page_title %}My Attendance{% endblock %}
+{% block user_name %}{{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="attendance-container">
+    <!-- Header Section -->
+    <div class="attendance-header">
+        <div class="date-info">
+            <h2>{{ formatted_date }}</h2>
+            <p class="date-subtitle">Your attendance for selected date</p>
+        </div>
+        
+        <div class="current-status-display status-{{ current_status }}">
+            {% if current_status == 'present' %}
+                <i class="fas fa-check-circle"></i>
+                <span>Present</span>
+            {% elif current_status == 'absent' %}
+                <i class="fas fa-times-circle"></i>
+                <span>Absent</span>
+            {% else %}
+                <i class="fas fa-clock"></i>
+                <span>Not Marked</span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Date Filter Section -->
+    <div class="date-filter-section">
+        <div class="filter-group">
+            <label for="filterDate"><i class="fas fa-calendar"></i> Select Date:</label>
+            <input type="date" id="filterDate" class="form-control" value="{{ current_date }}">
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterYear"><i class="fas fa-calendar-year"></i> Filter by Year:</label>
+            <select id="filterYear" class="form-control">
+                <option value="">All Years</option>
+                {% set current_year = current_date.split('-')[0] %}
+                {% for year in range(2020, 2030) %}
+                <option value="{{ year }}" {% if year|string == current_year %}selected{% endif %}>{{ year }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterMonth"><i class="fas fa-calendar-alt"></i> Filter by Month:</label>
+            <select id="filterMonth" class="form-control">
+                <option value="">All Months</option>
+                {% set current_month = current_date.split('-')[1] %}
+                {% set months = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12'] %}
+                {% set month_names = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'] %}
+                {% for month, month_name in months|zip(month_names) %}
+                <option value="{{ month }}" {% if month == current_month %}selected{% endif %}>{{ month_name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-group">
+            <label for="filterDay"><i class="fas fa-calendar-day"></i> Filter by Day:</label>
+            <select id="filterDay" class="form-control">
+                <option value="">All Days</option>
+                {% set current_day = current_date.split('-')[2] %}
+                {% for day in range(1, 32) %}
+                <option value="{{ '%02d'|format(day) }}" {% if '%02d'|format(day) == current_day %}selected{% endif %}>{{ day }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        <div class="filter-actions">
+            <button class="btn btn-primary" id="applyDateFilter">
+                <i class="fas fa-filter"></i>
+                Apply Filter
+            </button>
+            <button class="btn btn-outline" id="resetDateFilter">
+                <i class="fas fa-redo"></i>
+                Reset
+            </button>
+            <button class="btn btn-outline" id="viewFilteredAttendance">
+                <i class="fas fa-chart-line"></i>
+                View Filtered Data
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Info Card -->
+    <div class="student-info-card">
+        <div class="student-avatar">
+            {{ student.name[:1] }}
+        </div>
+        <div class="student-details">
+            <h3>{{ student.name }}</h3>
+            <p class="roll-number">{{ student.roll_no }}</p>
+            <p class="email">{{ student.email }}</p>
+        </div>
+    </div>
+
+    <!-- Attendance History -->
+    <div class="attendance-history-section">
+        <h2>Attendance History</h2>
+        {% if attendance_history %}
+        <div class="attendance-timeline">
+            {% for record in attendance_history[:30] %}
+            <div class="timeline-item status-{{ record.status }}">
+                <div class="timeline-date">
+                    {{ record.formatted_date }}
+                </div>
+                <div class="timeline-status">
+                    {% if record.status == 'present' %}
+                        <i class="fas fa-check-circle"></i>
+                        <span>Present</span>
+                    {% else %}
+                        <i class="fas fa-times-circle"></i>
+                        <span>Absent</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-calendar-times"></i>
+            <h3>No attendance records found</h3>
+            <p>Your attendance history will appear here once records are available</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Filtered Data Modal -->
+<div id="filteredDataModal" class="modal">
+    <div class="modal-content large">
+        <div class="modal-header">
+            <h3>Filtered Attendance Data</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="filteredDataContent"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="closeFilteredDataModal()">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Date filtering
+    document.getElementById('applyDateFilter').addEventListener('click', applyDateFilter);
+    document.getElementById('resetDateFilter').addEventListener('click', resetDateFilter);
+    document.getElementById('viewFilteredAttendance').addEventListener('click', viewFilteredAttendance);
+    
+    // Auto-apply when date inputs change
+    document.getElementById('filterDate').addEventListener('change', function() {
+        applyDateFilter();
+    });
+    
+    // Modal close
+    document.querySelector('.modal-close').addEventListener('click', closeFilteredDataModal);
+}
+
+function applyDateFilter() {
+    const selectedDate = document.getElementById('filterDate').value;
+    const selectedYear = document.getElementById('filterYear').value;
+    const selectedMonth = document.getElementById('filterMonth').value;
+    const selectedDay = document.getElementById('filterDay').value;
+    
+    // Build URL with filters
+    let url = '/attendance?';
+    const params = [];
+    
+    if (selectedDate) {
+        params.push(`date=${selectedDate}`);
+    }
+    
+    if (selectedYear && selectedMonth && selectedDay) {
+        params.push(`year=${selectedYear}`);
+        params.push(`month=${selectedMonth}`);
+        params.push(`day=${selectedDay}`);
+    } else if (selectedYear && selectedMonth) {
+        params.push(`year=${selectedYear}`);
+        params.push(`month=${selectedMonth}`);
+    } else if (selectedYear) {
+        params.push(`year=${selectedYear}`);
+    }
+    
+    if (params.length > 0) {
+        url += params.join('&');
+        window.location.href = url;
+    } else {
+        window.location.href = '/attendance';
+    }
+}
+
+function resetDateFilter() {
+    document.getElementById('filterDate').value = '';
+    document.getElementById('filterYear').value = '';
+    document.getElementById('filterMonth').value = '';
+    document.getElementById('filterDay').value = '';
+    window.location.href = '/attendance';
+}
+
+async function viewFilteredAttendance() {
+    const selectedYear = document.getElementById('filterYear').value;
+    const selectedMonth = document.getElementById('filterMonth').value;
+    const selectedDate = document.getElementById('filterDate').value;
+    
+    if (!selectedYear && !selectedMonth && !selectedDate) {
+        showToast('Please select a date filter first', 'warning');
+        return;
+    }
+    
+    try {
+        let url = '/api/attendance_filtered?';
+        const params = [];
+        
+        if (selectedDate) {
+            params.push(`start_date=${selectedDate}`);
+            params.push(`end_date=${selectedDate}`);
+        } else if (selectedYear && selectedMonth) {
+            params.push(`year=${selectedYear}`);
+            params.push(`month=${selectedMonth}`);
+        } else if (selectedYear) {
+            params.push(`year=${selectedYear}`);
+        }
+        
+        url += params.join('&');
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success) {
+            showFilteredDataModal(data);
+        } else {
+            showToast('Error loading filtered data', 'error');
+        }
+    } catch (error) {
+        console.error('Error fetching filtered attendance:', error);
+        showToast('Error loading filtered data. Please try again.', 'error');
+    }
+}
+
+function showFilteredDataModal(data) {
+    const modal = document.getElementById('filteredDataModal');
+    const content = document.getElementById('filteredDataContent');
+    
+    let html = `
+        <div class="filtered-stats">
+            <p><strong>Date Range:</strong> ${data.start_date} to ${data.end_date}</p>
+            <p><strong>Total Days:</strong> ${data.total_days}</p>
+            <p><strong>Present Days:</strong> ${data.present_days}</p>
+            <p><strong>Absent Days:</strong> ${data.absent_days}</p>
+            <p><strong>Attendance Rate:</strong> ${data.attendance_rate}%</p>
+        </div>
+        <table class="filtered-attendance-table">
+            <thead>
+                <tr>
+                    <th>Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
+    
+    data.daily_stats.forEach(stat => {
+        html += `
+            <tr>
+                <td>${stat.formatted_date}</td>
+                <td>
+                    <span class="badge ${stat.is_present ? 'badge-success' : 'badge-danger'}">
+                        ${stat.is_present ? 'Present' : 'Absent'}
+                    </span>
+                </td>
+            </tr>
+        `;
+    });
+    
+    html += `
+            </tbody>
+        </table>
+    `;
+    
+    content.innerHTML = html;
+    modal.style.display = 'block';
+}
+
+function closeFilteredDataModal() {
+    const modal = document.getElementById('filteredDataModal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+</script>
+{% endblock %}

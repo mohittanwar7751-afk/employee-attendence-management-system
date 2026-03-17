@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}Admin Dashboard - CrowdMuse{% endblock %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <!-- Welcome Section -->
+    <div class="welcome-section">
+        <div class="welcome-content">
+            <div class="student-avatar-large">
+                {{ admin.username[:1]|upper }}
+            </div>
+            <div class="welcome-text">
+                <h2>Welcome back, {{ admin.username }}!</h2>
+                <p class="student-info">
+                    <span class="roll-badge">Administrator</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="stats-grid">
+        <div class="stat-card total-days">
+            <div class="stat-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ students|length }}</h3>
+                <p>Total Students</p>
+            </div>
+        </div>
+
+        <div class="stat-card present-days">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-alt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_days }}</h3>
+                <p>Days Tracked</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="quick-links">
+        <h3>Quick Navigation</h3>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 15px;">
+            <a href="{{ url_for('admin_students') }}" class="btn btn-primary">
+                <i class="fas fa-users"></i> Manage Students
+            </a>
+            <a href="{{ url_for('admin_attendance') }}" class="btn btn-primary">
+                <i class="fas fa-calendar-check"></i> View Attendance
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

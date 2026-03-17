@@ -1,0 +1,449 @@
+{% extends "base.html" %}
+
+{% block title %}Students - Attendance Management{% endblock %}
+{% block page_title %}Students Management{% endblock %}
+
+{% block content %}
+<div class="students-container">
+    <!-- Header Section -->
+    <div class="students-header">
+        <div class="header-info">
+            <h2>Student Directory</h2>
+            <p>Manage student information and registrations</p>
+        </div>
+        
+        <button class="btn btn-primary" id="addStudentBtn">
+            <i class="fas fa-plus"></i>
+            Add New Student
+        </button>
+    </div>
+
+    <!-- Search and Filter Controls -->
+    <div class="controls-section">
+        <div class="search-container">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchStudents" placeholder="Search by name, roll number, or email...">
+        </div>
+        
+        <div class="view-controls">
+            <button class="view-toggle active" data-view="grid" title="Grid View">
+                <i class="fas fa-th"></i>
+            </button>
+            <button class="view-toggle" data-view="list" title="List View">
+                <i class="fas fa-list"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Students Grid/List -->
+    <div class="students-display grid-view" id="studentsDisplay">
+        {% for student in students %}
+        <div class="student-item" 
+             data-name="{{ student.name|lower }}" 
+             data-roll="{{ student.roll_no|lower }}" 
+             data-email="{{ student.email|lower }}">
+            
+            <div class="student-card">
+                <div class="student-avatar">
+                    {{ student.name[:1] }}
+                </div>
+                
+                <div class="student-info">
+                    <h3>{{ student.name }}</h3>
+                    <p class="roll-number">{{ student.roll_no }}</p>
+                    <p class="email">{{ student.email }}</p>
+                </div>
+                
+                <div class="student-actions">
+                    <button class="btn-icon btn-edit" 
+                            title="Edit Student" 
+                            data-student-id="{{ student.id }}">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon btn-delete" 
+                            title="Delete Student" 
+                            data-student-id="{{ student.id }}">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    <button class="btn-icon btn-view" 
+                            title="View Details" 
+                            data-student-id="{{ student.id }}">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+        <i class="fas fa-users"></i>
+        <h3>No students found</h3>
+        <p>Try adjusting your search or add a new student</p>
+        <button class="btn btn-primary" id="addFirstStudent">
+            <i class="fas fa-plus"></i>
+            Add First Student
+        </button>
+    </div>
+</div>
+
+<!-- Add/Edit Student Modal -->
+<div id="studentModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modalTitle">Add New Student</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <form id="studentForm" class="modal-body">
+            <div class="form-group">
+                <label for="studentName">Full Name</label>
+                <input type="text" id="studentName" name="name" required 
+                       placeholder="Enter student's full name">
+            </div>
+            
+            <div class="form-group">
+                <label for="studentRoll">Roll Number</label>
+                <input type="text" id="studentRoll" name="roll_no" required 
+                       placeholder="Enter roll number (e.g., CS001)">
+            </div>
+            
+            <div class="form-group">
+                <label for="studentEmail">Email Address</label>
+                <input type="email" id="studentEmail" name="email" required 
+                       placeholder="Enter email address">
+            </div>
+            
+            <div class="form-actions">
+                <button type="button" class="btn btn-outline" id="cancelForm">
+                    Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" id="submitForm">
+                    <i class="fas fa-save"></i>
+                    Save Student
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Student Details Modal -->
+<div id="studentDetailsModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Student Details</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="student-detail-card">
+                <div class="detail-avatar" id="detailAvatar">A</div>
+                <div class="detail-info">
+                    <h2 id="detailName">Student Name</h2>
+                    <p id="detailRoll">Roll Number</p>
+                    <p id="detailEmail">email@example.com</p>
+                </div>
+            </div>
+            
+            <div class="attendance-summary">
+                <h4>Attendance Summary</h4>
+                <div class="summary-stats">
+                    <div class="stat-item">
+                        <span class="stat-value" id="detailTotalDays">0</span>
+                        <span class="stat-label">Total Days</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="detailPresentDays">0</span>
+                        <span class="stat-label">Present</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="detailAbsentDays">0</span>
+                        <span class="stat-label">Absent</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="detailAttendanceRate">0%</span>
+                        <span class="stat-label">Attendance Rate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" onclick="hideStudentDetails()">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteConfirmModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Confirm Deletion</h3>
+            <button class="modal-close">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+            <div class="warning-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <p>Are you sure you want to delete this student?</p>
+            <p class="warning-text">This action cannot be undone and will remove all attendance records for this student.</p>
+            <div class="student-to-delete">
+                <strong id="deleteStudentName">Student Name</strong>
+                <span id="deleteStudentRoll">Roll Number</span>
+            </div>
+        </div>
+        
+        <div class="modal-footer">
+            <button class="btn btn-outline" id="cancelDelete">Cancel</button>
+            <button class="btn btn-danger" id="confirmDelete">
+                <i class="fas fa-trash"></i>
+                Delete Student
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentStudentId = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    setupEventListeners();
+});
+
+function setupEventListeners() {
+    // Add student button
+    document.getElementById('addStudentBtn').addEventListener('click', () => showStudentModal());
+    document.getElementById('addFirstStudent').addEventListener('click', () => showStudentModal());
+
+    // Modal close buttons
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', hideAllModals);
+    });
+
+    // Form submission
+    document.getElementById('studentForm').addEventListener('submit', handleStudentSubmit);
+    document.getElementById('cancelForm').addEventListener('click', hideAllModals);
+
+    // Student actions
+    setupStudentActions();
+
+    // Search functionality
+    document.getElementById('searchStudents').addEventListener('input', filterStudents);
+
+    // View toggle
+    document.querySelectorAll('.view-toggle').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelector('.view-toggle.active').classList.remove('active');
+            this.classList.add('active');
+            toggleView(this.dataset.view);
+        });
+    });
+
+    // Delete confirmation
+    document.getElementById('cancelDelete').addEventListener('click', hideAllModals);
+    document.getElementById('confirmDelete').addEventListener('click', deleteStudent);
+}
+
+function setupStudentActions() {
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.dataset.studentId;
+            editStudent(studentId);
+        });
+    });
+
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.dataset.studentId;
+            showDeleteConfirmation(studentId);
+        });
+    });
+
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const studentId = this.dataset.studentId;
+            showStudentDetails(studentId);
+        });
+    });
+}
+
+function showStudentModal(studentData = null) {
+    const modal = document.getElementById('studentModal');
+    const title = document.getElementById('modalTitle');
+    const form = document.getElementById('studentForm');
+    
+    if (studentData) {
+        title.textContent = 'Edit Student';
+        document.getElementById('studentName').value = studentData.name;
+        document.getElementById('studentRoll').value = studentData.roll_no;
+        document.getElementById('studentEmail').value = studentData.email;
+        currentStudentId = studentData.id;
+    } else {
+        title.textContent = 'Add New Student';
+        form.reset();
+        currentStudentId = null;
+    }
+    
+    modal.style.display = 'block';
+    document.getElementById('studentName').focus();
+}
+
+function hideAllModals() {
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.style.display = 'none';
+    });
+}
+
+async function handleStudentSubmit(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(e.target);
+    const studentData = {
+        name: formData.get('name'),
+        roll_no: formData.get('roll_no'),
+        email: formData.get('email')
+    };
+
+    const submitBtn = document.getElementById('submitForm');
+    const originalText = submitBtn.innerHTML;
+    
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+    submitBtn.disabled = true;
+
+    try {
+        const response = await fetch('/add_student', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(studentData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showToast('Student added successfully!', 'success');
+            hideAllModals();
+            // Refresh the page to show the new student
+            setTimeout(() => {
+                window.location.reload();
+            }, 1000);
+        } else {
+            showToast('Error adding student. Please try again.', 'error');
+        }
+    } catch (error) {
+        console.error('Error:', error);
+        showToast('Error adding student. Please try again.', 'error');
+    } finally {
+        submitBtn.innerHTML = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+function editStudent(studentId) {
+    // In a real app, you'd fetch student data from the server
+    // For now, we'll extract it from the DOM
+    const studentCard = document.querySelector(`[data-student-id="${studentId}"]`).closest('.student-item');
+    const name = studentCard.querySelector('h3').textContent;
+    const rollNo = studentCard.querySelector('.roll-number').textContent;
+    const email = studentCard.querySelector('.email').textContent;
+
+    showStudentModal({
+        id: studentId,
+        name: name,
+        roll_no: rollNo,
+        email: email
+    });
+}
+
+function showDeleteConfirmation(studentId) {
+    const studentCard = document.querySelector(`[data-student-id="${studentId}"]`).closest('.student-item');
+    const name = studentCard.querySelector('h3').textContent;
+    const rollNo = studentCard.querySelector('.roll-number').textContent;
+
+    document.getElementById('deleteStudentName').textContent = name;
+    document.getElementById('deleteStudentRoll').textContent = rollNo;
+    currentStudentId = studentId;
+
+    document.getElementById('deleteConfirmModal').style.display = 'block';
+}
+
+function deleteStudent() {
+    // In a real app, you'd send a DELETE request to the server
+    showToast('Student deletion is not implemented in this demo', 'warning');
+    hideAllModals();
+}
+
+function showStudentDetails(studentId) {
+    // In a real app, you'd fetch detailed student data from the server
+    const studentCard = document.querySelector(`[data-student-id="${studentId}"]`).closest('.student-item');
+    const name = studentCard.querySelector('h3').textContent;
+    const rollNo = studentCard.querySelector('.roll-number').textContent;
+    const email = studentCard.querySelector('.email').textContent;
+
+    document.getElementById('detailName').textContent = name;
+    document.getElementById('detailRoll').textContent = rollNo;
+    document.getElementById('detailEmail').textContent = email;
+    document.getElementById('detailAvatar').textContent = name[0];
+
+    // Mock attendance data
+    document.getElementById('detailTotalDays').textContent = '15';
+    document.getElementById('detailPresentDays').textContent = '12';
+    document.getElementById('detailAbsentDays').textContent = '3';
+    document.getElementById('detailAttendanceRate').textContent = '80%';
+
+    document.getElementById('studentDetailsModal').style.display = 'block';
+}
+
+function hideStudentDetails() {
+    document.getElementById('studentDetailsModal').style.display = 'none';
+}
+
+function filterStudents() {
+    const searchTerm = document.getElementById('searchStudents').value.toLowerCase();
+    const studentItems = document.querySelectorAll('.student-item');
+    let visibleCount = 0;
+
+    studentItems.forEach(item => {
+        const name = item.dataset.name;
+        const roll = item.dataset.roll;
+        const email = item.dataset.email;
+
+        if (name.includes(searchTerm) || roll.includes(searchTerm) || email.includes(searchTerm)) {
+            item.style.display = 'block';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    // Show/hide empty state
+    const emptyState = document.getElementById('emptyState');
+    if (visibleCount === 0 && searchTerm !== '') {
+        emptyState.style.display = 'flex';
+        emptyState.querySelector('h3').textContent = 'No students found';
+        emptyState.querySelector('p').textContent = 'Try adjusting your search terms';
+    } else {
+        emptyState.style.display = 'none';
+    }
+}
+
+function toggleView(view) {
+    const display = document.getElementById('studentsDisplay');
+    
+    if (view === 'list') {
+        display.classList.remove('grid-view');
+        display.classList.add('list-view');
+    } else {
+        display.classList.remove('list-view');
+        display.classList.add('grid-view');
+    }
+}
+</script>
+{% endblock %}

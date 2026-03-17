@@ -1,0 +1,292 @@
+{
+    "admins": [
+        {
+            "id": 1,
+            "username": "admin",
+            "password": "admin"
+        }
+    ],
+    "students": [
+        {
+            "id": 1,
+            "name": "Demo User",
+            "roll_no": "DEMO01",
+            "email": "demo@example.com",
+            "password": "password"
+        },
+        {
+            "id": 2,
+            "name": "Rakshit YAdav",
+            "email": "rakshit@gmail.com",
+            "password": "Password",
+            "roll_no": "CS202"
+        },
+        {
+            "id": 3,
+            "name": "Ananya Sharma",
+            "roll_no": "CS203",
+            "email": "ananya.sharma@example.com",
+            "password": "password"
+        },
+        {
+            "id": 4,
+            "name": "Mohit Verma",
+            "roll_no": "CS204",
+            "email": "mohit.verma@example.com",
+            "password": "password"
+        },
+        {
+            "id": 5,
+            "name": "Priya Singh",
+            "roll_no": "CS205",
+            "email": "priya.singh@example.com",
+            "password": "password"
+        },
+        {
+            "id": 6,
+            "name": "Aarav Mehta",
+            "roll_no": "CS206",
+            "email": "aarav.mehta@example.com",
+            "password": "password"
+        },
+        {
+            "id": 7,
+            "name": "Isha Gupta",
+            "roll_no": "CS207",
+            "email": "isha.gupta@example.com",
+            "password": "password"
+        },
+        {
+            "id": 8,
+            "name": "Kunal Patel",
+            "roll_no": "CS208",
+            "email": "kunal.patel@example.com",
+            "password": "password"
+        },
+        {
+            "id": 9,
+            "name": "Neha Kapoor",
+            "roll_no": "CS209",
+            "email": "neha.kapoor@example.com",
+            "password": "password"
+        },
+        {
+            "id": 10,
+            "name": "Rohan Nair",
+            "roll_no": "CS210",
+            "email": "rohan.nair@example.com",
+            "password": "password"
+        },
+        {
+            "id": 11,
+            "name": "Sanya Joshi",
+            "roll_no": "CS211",
+            "email": "sanya.joshi@example.com",
+            "password": "password"
+        },
+        {
+            "id": 12,
+            "name": "Vikram Rao",
+            "roll_no": "CS212",
+            "email": "vikram.rao@example.com",
+            "password": "password"
+        },
+        {
+            "id": 13,
+            "name": "Meera Iyer",
+            "roll_no": "CS213",
+            "email": "meera.iyer@example.com",
+            "password": "password"
+        },
+        {
+            "id": 14,
+            "name": "Aditya Kulkarni",
+            "roll_no": "CS214",
+            "email": "aditya.kulkarni@example.com",
+            "password": "password"
+        },
+        {
+            "id": 15,
+            "name": "Simran Kaur",
+            "roll_no": "CS215",
+            "email": "simran.kaur@example.com",
+            "password": "password"
+        }
+    ],
+    "attendance": {},
+    "classes": [
+        {
+            "id": 1,
+            "subject": "Data Structures",
+            "date": "2026-03-16",
+            "time": "10:00 AM",
+            "admin_id": 1
+        },
+        {
+            "id": 2,
+            "subject": "DBMS",
+            "date": "2026-03-18",
+            "time": "02:00 PM",
+            "admin_id": 1
+        },
+        {
+            "id": 3,
+            "subject": "Operating Systems",
+            "date": "2026-03-20",
+            "time": "11:30 AM",
+            "admin_id": 1
+        },
+        {
+            "id": 4,
+            "subject": "Computer Networks",
+            "date": "2026-03-17",
+            "time": "04:00 PM",
+            "admin_id": 1
+        },
+        {
+            "id": 5,
+            "subject": "Software Engineering",
+            "date": "2026-03-19",
+            "time": "09:00 AM",
+            "admin_id": 1
+        },
+        {
+            "id": 6,
+            "subject": "AI Fundamentals",
+            "date": "2026-03-22",
+            "time": "01:00 PM",
+            "admin_id": 1
+        }
+    ],
+    "enrollments": {
+        "1": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15"
+        ],
+        "2": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10"
+        ],
+        "3": [
+            "2",
+            "11",
+            "12",
+            "13",
+            "14",
+            "15"
+        ],
+        "4": [
+            "1",
+            "3",
+            "4",
+            "6",
+            "7",
+            "8"
+        ],
+        "5": [
+            "2",
+            "3",
+            "5",
+            "9",
+            "10",
+            "11"
+        ],
+        "6": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ]
+    },
+    "class_attendance": {
+        "1": {
+            "2026-03-16": {
+                "1": "present",
+                "2": "present",
+                "3": "present",
+                "4": "present",
+                "5": "present",
+                "6": "present",
+                "7": "present",
+                "8": "present",
+                "9": "present",
+                "10": "absent",
+                "11": "present",
+                "12": "absent",
+                "13": "present",
+                "14": "present",
+                "15": "present"
+            }
+        },
+        "2": {
+            "2026-03-18": {
+                "1": "present",
+                "2": "present"
+            }
+        },
+        "4": {
+            "2026-03-17": {
+                "1": "present",
+                "3": "present",
+                "4": "absent"
+            }
+        }
+    },
+    "locations": [
+        {
+            "id": 1,
+            "name": "Main Library",
+            "building": "Library",
+            "floor": "Ground",
+            "max_capacity": 200,
+            "current_count": 45,
+            "camera_id": "CAM-001",
+            "icon": "fas fa-book",
+            "color": "#3b82f6"
+        },
+        {
+            "id": 2,
+            "name": "Computer Lab",
+            "building": "Science Block",
+            "floor": "2nd",
+            "max_capacity": 50,
+            "current_count": 12,
+            "camera_id": "CAM-002",
+            "icon": "fas fa-laptop",
+            "color": "#10b981"
+        },
+        {
+            "id": 3,
+            "name": "Cafeteria",
+            "building": "Student Center",
+            "floor": "Ground",
+            "max_capacity": 150,
+            "current_count": 89,
+            "camera_id": "CAM-004",
+            "icon": "fas fa-utensils",
+            "color": "#ef4444"
+        }
+    ]
+}

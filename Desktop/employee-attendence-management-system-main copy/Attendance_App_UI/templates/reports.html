@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}My Reports - Attendance Management{% endblock %}
+{% block page_title %}My Reports{% endblock %}
+{% block user_name %}{{ stats.student.name }}{% endblock %}
+
+{% block content %}
+<div class="reports-container">
+    <!-- Header Section -->
+    <div class="reports-header">
+        <div class="header-info">
+            <h2>My Attendance Reports</h2>
+            <p>Detailed analytics and insights for {{ stats.student.name }}</p>
+        </div>
+        
+        <div class="report-actions">
+            <button class="btn btn-outline" id="exportReport">
+                <i class="fas fa-download"></i>
+                Export Report
+            </button>
+        </div>
+    </div>
+
+    <!-- Student Info -->
+    <div class="student-report-header">
+        <div class="student-info-detailed">
+            <div class="student-avatar large">{{ stats.student.name[:1] }}</div>
+            <div class="student-details">
+                <h2>{{ stats.student.name }}</h2>
+                <p>{{ stats.student.roll_no }}</p>
+                <p>{{ stats.student.email }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overall Statistics -->
+    <div class="overall-stats">
+        <div class="stats-card">
+            <div class="stat-icon">
+                <i class="fas fa-calendar-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.total_days }}</h3>
+                <p>Total Class Days</p>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.present_days }}</h3>
+                <p>Present Days</p>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.absent_days }}</h3>
+                <p>Absent Days</p>
+            </div>
+        </div>
+
+        <div class="stats-card">
+            <div class="stat-icon">
+                <i class="fas fa-percentage"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ stats.percentage }}%</h3>
+                <p>Attendance Rate</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Attendance Status Badge -->
+    <div class="attendance-status-section">
+        <div class="status-badge-large">
+            {% if stats.percentage >= 90 %}
+                <div class="status-excellent">
+                    <i class="fas fa-trophy"></i>
+                    <h3>Excellent Attendance</h3>
+                    <p>You're doing great! Keep up the good work.</p>
+                </div>
+            {% elif stats.percentage >= 75 %}
+                <div class="status-good">
+                    <i class="fas fa-thumbs-up"></i>
+                    <h3>Good Attendance</h3>
+                    <p>You're maintaining good attendance. Keep it up!</p>
+                </div>
+            {% elif stats.percentage >= 60 %}
+                <div class="status-warning">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Needs Improvement</h3>
+                    <p>Your attendance could be better. Try to attend more regularly.</p>
+                </div>
+            {% else %}
+                <div class="status-critical">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <h3>Low Attendance</h3>
+                    <p>Please improve your attendance to meet the requirements.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Monthly Breakdown -->
+    {% if stats.monthly_breakdown %}
+    <div class="monthly-breakdown-section">
+        <h2>Monthly Breakdown</h2>
+        <div class="monthly-stats-grid">
+            {% for month in stats.monthly_breakdown %}
+            <div class="month-card">
+                <div class="month-header">
+                    <h3>{{ month.month }}</h3>
+                </div>
+                <div class="month-stats">
+                    <div class="month-stat-item">
+                        <span class="label">Present:</span>
+                        <span class="value present">{{ month.present }}</span>
+                    </div>
+                    <div class="month-stat-item">
+                        <span class="label">Absent:</span>
+                        <span class="value absent">{{ month.absent }}</span>
+                    </div>
+                    <div class="month-stat-item">
+                        <span class="label">Total:</span>
+                        <span class="value">{{ month.total }}</span>
+                    </div>
+                    <div class="month-percentage">
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ month.percentage }}%"></div>
+                        </div>
+                        <span>{{ month.percentage }}%</span>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Daily Records -->
+    {% if stats.daily_records %}
+    <div class="daily-records-section">
+        <h2>Recent Attendance Records</h2>
+        <div class="records-table-container">
+            <table class="reports-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in stats.daily_records[:50] %}
+                    <tr>
+                        <td>{{ record.formatted_date }}</td>
+                        <td>
+                            {% if record.status == 'present' %}
+                                <span class="badge badge-success">
+                                    <i class="fas fa-check-circle"></i>
+                                    Present
+                                </span>
+                            {% else %}
+                                <span class="badge badge-danger">
+                                    <i class="fas fa-times-circle"></i>
+                                    Absent
+                                </span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="empty-state">
+        <i class="fas fa-chart-bar"></i>
+        <h3>No attendance records available</h3>
+        <p>Your attendance records will appear here once they are available</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('exportReport').addEventListener('click', function() {
+        showToast('Export functionality is not implemented in this demo', 'info');
+    });
+});
+</script>
+{% endblock %}

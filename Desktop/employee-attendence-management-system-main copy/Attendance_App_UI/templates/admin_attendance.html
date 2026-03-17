@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}All Attendance Records - CrowdMuse{% endblock %}
+
+{% block page_title %}All Attendance Records{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+  <div class="admin-section">
+    <h2>Attendance Records</h2>
+    {% if attendance_records %}
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Student ID</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for date_str, records in attendance_records.items() %}
+            {% for student_id, status in records.items() %}
+              <tr>
+                <td>{{ date_str }}</td>
+                <td>{{ student_id }}</td>
+                <td>
+                  <span class="status-badge status-{{ status }}">{{ status|capitalize }}</span>
+                </td>
+              </tr>
+            {% endfor %}
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>No attendance records yet.</p>
+    {% endif %}
+  </div>
+{% endblock %}

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+
+{% block title %}Mark Attendance - CrowdMuse{% endblock %}
+
+{% block page_title %}Mark Attendance{% endblock %}
+
+{% block user_name %}{{ admin.username }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="quick-links">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+            <div>
+                <h3 style="margin: 0;">{{ cls.subject }}</h3>
+                <p style="margin-top: 6px; color: var(--text-secondary);">
+                    <i class="fas fa-calendar"></i>
+                    <span style="margin-left: 6px;">{{ cls.date }}</span>
+                    <span style="margin-left: 10px;"><i class="fas fa-clock"></i></span>
+                    <span style="margin-left: 6px;">{{ cls.time }}</span>
+                </p>
+            </div>
+            <a href="{{ url_for('admin_weekly_class_schedule') }}" class="btn btn-primary">
+                <i class="fas fa-arrow-left"></i> Back to Week
+            </a>
+        </div>
+
+        <form method="POST" action="{{ url_for('admin_save_class_attendance', class_id=cls.id) }}" style="margin-top: 16px;">
+            {% if students %}
+                <div style="background: var(--bg-primary); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color);">
+                    <table class="data-table" style="width: 100%; border-collapse: collapse;">
+                        <thead style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
+                            <tr>
+                                <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Student</th>
+                                <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Roll No</th>
+                                <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Attendance</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for s in students %}
+                                {% set current = existing_statuses.get(s.id|string, 'present') %}
+                                <tr style="border-bottom: 1px solid var(--border-color); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'">
+                                    <td style="padding: var(--spacing-lg); color: var(--text-primary);">
+                                        {{ s.name }}
+                                    </td>
+                                    <td style="padding: var(--spacing-lg); color: var(--text-secondary);">
+                                        {{ s.roll_no }}
+                                    </td>
+                                    <td style="padding: var(--spacing-lg); color: var(--text-primary);">
+                                        <div style="display: flex; gap: 14px; align-items: center; flex-wrap: wrap;">
+                                            <label style="display: inline-flex; gap: 8px; align-items: center; cursor: pointer;">
+                                                <input type="radio" name="status_{{ s.id }}" value="present" {% if current != 'absent' %}checked{% endif %}>
+                                                <span>Present</span>
+                                            </label>
+                                            <label style="display: inline-flex; gap: 8px; align-items: center; cursor: pointer;">
+                                                <input type="radio" name="status_{{ s.id }}" value="absent" {% if current == 'absent' %}checked{% endif %}>
+                                                <span>Absent</span>
+                                            </label>
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div style="margin-top: 16px; display: flex; justify-content: flex-end;">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save"></i> Save Attendance
+                    </button>
+                </div>
+            {% else %}
+                <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
+                    <p>No students are enrolled in this class.</p>
+                </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}
