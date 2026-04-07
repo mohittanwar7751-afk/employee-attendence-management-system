@@ -76,6 +76,12 @@
                             <span>Campus Locations</span>
                         </a>
                     </li>
+                    <li class="{% if request.endpoint == 'student_timetable' %}active{% endif %}">
+                        <a href="{{ url_for('student_timetable') }}">
+                            <i class="fas fa-calendar-week"></i>
+                            <span>My Timetable</span>
+                        </a>
+                    </li>
                 {% endif %}
             </ul>
         </nav>

@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}My Timetable - CrowdMuse{% endblock %}
+
+{% block page_title %}My Timetable{% endblock %}
+
+{% block user_name %}{{ student.name }}{% endblock %}
+
+{% block content %}
+<div class="dashboard-grid">
+    <div class="quick-links">
+        <h3>
+            Weekly Timetable ({{ week_start.strftime('%b %d') }}  {{ week_end.strftime('%b %d, %Y') }})
+        </h3>
+        <p style="margin-top: 6px; color: var(--text-secondary);">
+            This timetable is generated from the same class schedule used on the admin side.
+        </p>
+
+        {% if weekly_classes %}
+            <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
+                {% for cls in weekly_classes %}
+                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm);">
+                        <h3 style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">
+                            {{ cls.subject }}
+                        </h3>
+                        <p style="margin-top: 6px; color: var(--text-secondary);">
+                            <i class="fas fa-calendar"></i>
+                            <span style="margin-left: 6px;">{{ cls.formatted_date }} ({{ cls.date }})</span>
+                        </p>
+                        <p style="margin-top: 4px; color: var(--text-secondary);">
+                            <i class="fas fa-clock"></i>
+                            <span style="margin-left: 6px;">{{ cls.time }}</span>
+                        </p>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-top: 16px; text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
+                <p>No classes found for you this week.</p>
+                <p style="margin-top: 6px; font-size: 0.9rem;">
+                    Ask your admin to enroll you in classes for this week.
+                </p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

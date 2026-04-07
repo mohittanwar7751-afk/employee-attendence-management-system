@@ -1,39 +1,759 @@
 {% extends 'base.html' %}
 
-{% block title %}All Attendance Records - CrowdMuse{% endblock %}
-
-{% block page_title %}All Attendance Records{% endblock %}
-
+{% block title %}Attendance Records - CrowdMuse{% endblock %}
+{% block page_title %}Attendance Records{% endblock %}
 {% block user_name %}{{ admin.username }}{% endblock %}
 
 {% block content %}
-  <div class="admin-section">
-    <h2>Attendance Records</h2>
-    {% if attendance_records %}
-      <table class="data-table">
+<div class="ar-container">
+
+  <!-- ══════════════════════════════════════════════════
+       SUMMARY STATS
+  ══════════════════════════════════════════════════ -->
+  <div class="ar-stats-row">
+    <div class="ar-stat-card ar-stat-total">
+      <div class="ar-stat-icon"><i class="fas fa-list-alt"></i></div>
+      <div class="ar-stat-body">
+        <span class="ar-stat-value" id="statTotal">{{ summary.total }}</span>
+        <span class="ar-stat-label">Total Records</span>
+      </div>
+    </div>
+    <div class="ar-stat-card ar-stat-present">
+      <div class="ar-stat-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="ar-stat-body">
+        <span class="ar-stat-value" id="statPresent">{{ summary.present }}</span>
+        <span class="ar-stat-label">Present</span>
+      </div>
+    </div>
+    <div class="ar-stat-card ar-stat-absent">
+      <div class="ar-stat-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="ar-stat-body">
+        <span class="ar-stat-value" id="statAbsent">{{ summary.absent }}</span>
+        <span class="ar-stat-label">Absent</span>
+      </div>
+    </div>
+    <div class="ar-stat-card ar-stat-late">
+      <div class="ar-stat-icon"><i class="fas fa-clock"></i></div>
+      <div class="ar-stat-body">
+        <span class="ar-stat-value" id="statLate">{{ summary.late }}</span>
+        <span class="ar-stat-label">Late</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       ADD RECORD FORM (expandable panel)
+  ══════════════════════════════════════════════════ -->
+  <div class="ar-card ar-form-card">
+    <div class="ar-card-header ar-form-toggle" id="formToggle" title="Click to expand/collapse">
+      <div class="ar-card-title">
+        <i class="fas fa-plus-circle" style="color: var(--primary-color);"></i>
+        Add Attendance Record
+      </div>
+      <button class="ar-toggle-btn" id="formToggleBtn" aria-expanded="false">
+        <i class="fas fa-chevron-down"></i>
+      </button>
+    </div>
+
+    <div class="ar-form-body" id="formBody" style="display:none;">
+      <!-- Inline error / info banner -->
+      <div class="ar-alert ar-alert-error" id="formError" style="display:none;"></div>
+
+      <form id="addAttendanceForm" novalidate>
+        <div class="ar-form-grid">
+          <!-- Student -->
+          <div class="ar-field-group">
+            <label for="fs_student" class="ar-label">
+              <i class="fas fa-user-graduate"></i> Student <span class="ar-required">*</span>
+            </label>
+            <select id="fs_student" name="student_id" class="ar-input" required>
+              <option value="">— Select student —</option>
+              {% for s in students %}
+              <option value="{{ s.id }}">{{ s.name }} ({{ s.roll_no }})</option>
+              {% endfor %}
+            </select>
+            <span class="ar-field-err" id="err_student"></span>
+          </div>
+
+          <!-- Date -->
+          <div class="ar-field-group">
+            <label for="fs_date" class="ar-label">
+              <i class="fas fa-calendar-alt"></i> Date <span class="ar-required">*</span>
+            </label>
+            <input type="date" id="fs_date" name="date" class="ar-input" value="{{ today }}" max="{{ today }}" required>
+            <span class="ar-field-err" id="err_date"></span>
+          </div>
+
+          <!-- Status -->
+          <div class="ar-field-group">
+            <label class="ar-label">
+              <i class="fas fa-tag"></i> Status <span class="ar-required">*</span>
+            </label>
+            <div class="ar-status-pills">
+              <label class="ar-pill ar-pill-present">
+                <input type="radio" name="status" value="present" checked>
+                <i class="fas fa-check"></i> Present
+              </label>
+              <label class="ar-pill ar-pill-absent">
+                <input type="radio" name="status" value="absent">
+                <i class="fas fa-times"></i> Absent
+              </label>
+              <label class="ar-pill ar-pill-late">
+                <input type="radio" name="status" value="late">
+                <i class="fas fa-clock"></i> Late
+              </label>
+            </div>
+            <span class="ar-field-err" id="err_status"></span>
+          </div>
+
+          <!-- Time (optional) -->
+          <div class="ar-field-group">
+            <label for="fs_time" class="ar-label">
+              <i class="fas fa-hourglass-start"></i> Time
+              <span class="ar-optional">(optional)</span>
+            </label>
+            <input type="time" id="fs_time" name="time" class="ar-input">
+          </div>
+        </div>
+
+        <div class="ar-form-actions">
+          <button type="button" class="btn btn-outline" id="formResetBtn">
+            <i class="fas fa-undo"></i> Reset
+          </button>
+          <button type="submit" class="btn btn-primary" id="addSubmitBtn">
+            <i class="fas fa-plus"></i> Add Record
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       FILTERS + TABLE
+  ══════════════════════════════════════════════════ -->
+  <div class="ar-card">
+    <div class="ar-card-header">
+      <div class="ar-card-title">
+        <i class="fas fa-table" style="color: var(--primary-color);"></i>
+        All Records
+        <span class="ar-record-count" id="recordCount">{{ records|length }}</span>
+      </div>
+      <a href="{{ url_for('admin_attendance_export') }}" class="btn btn-outline btn-sm" title="Export as CSV">
+        <i class="fas fa-file-csv"></i> Export CSV
+      </a>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="ar-filter-bar">
+      <div class="ar-search-wrap">
+        <i class="fas fa-search ar-search-icon"></i>
+        <input
+          type="text"
+          id="filterName"
+          class="ar-input ar-search-input"
+          placeholder="Search by student name…"
+        >
+      </div>
+      <div class="ar-filter-wrap">
+        <i class="fas fa-calendar ar-filter-icon"></i>
+        <input
+          type="date"
+          id="filterDate"
+          class="ar-input ar-filter-date"
+          placeholder="Filter by date"
+        >
+      </div>
+      <div class="ar-filter-wrap">
+        <select id="filterStatus" class="ar-input ar-filter-select">
+          <option value="">All Statuses</option>
+          <option value="present">Present</option>
+          <option value="absent">Absent</option>
+          <option value="late">Late</option>
+        </select>
+      </div>
+      <button class="btn btn-outline btn-sm" id="clearFiltersBtn">
+        <i class="fas fa-times"></i> Clear
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="ar-table-wrap">
+      <table class="ar-table" id="recordsTable">
         <thead>
           <tr>
-            <th>Date</th>
-            <th>Student ID</th>
+            <th class="ar-th-sortable" data-col="student_name">
+              Student <i class="fas fa-sort ar-sort-icon"></i>
+            </th>
+            <th>Roll No</th>
+            <th class="ar-th-sortable" data-col="date">
+              Date <i class="fas fa-sort-down ar-sort-icon active"></i>
+            </th>
             <th>Status</th>
+            <th>Time</th>
+            <th class="ar-th-actions">Actions</th>
           </tr>
         </thead>
-        <tbody>
-          {% for date_str, records in attendance_records.items() %}
-            {% for student_id, status in records.items() %}
-              <tr>
-                <td>{{ date_str }}</td>
-                <td>{{ student_id }}</td>
-                <td>
-                  <span class="status-badge status-{{ status }}">{{ status|capitalize }}</span>
-                </td>
-              </tr>
-            {% endfor %}
+        <tbody id="recordsBody">
+          {% for r in records %}
+          <tr
+            class="ar-row"
+            data-student-name="{{ r.student_name | lower }}"
+            data-date="{{ r.date }}"
+            data-status="{{ r.status }}"
+            data-student-id="{{ r.student_id }}"
+            data-time="{{ r.time }}"
+            data-roll="{{ r.roll_no }}"
+          >
+            <td>
+              <div class="ar-student-cell">
+                <div class="ar-avatar">{{ r.student_name[:1] | upper }}</div>
+                <span class="ar-student-name">{{ r.student_name }}</span>
+              </div>
+            </td>
+            <td><span class="ar-roll-badge">{{ r.roll_no }}</span></td>
+            <td>
+              <span class="ar-date-text">{{ r.date }}</span>
+            </td>
+            <td>
+              <span class="ar-status-badge ar-status-{{ r.status }}">
+                {% if r.status == 'present' %}<i class="fas fa-check"></i>
+                {% elif r.status == 'absent' %}<i class="fas fa-times"></i>
+                {% else %}<i class="fas fa-clock"></i>{% endif %}
+                {{ r.status | capitalize }}
+              </span>
+            </td>
+            <td>
+              <span class="ar-time-text">{{ r.time if r.time else '—' }}</span>
+            </td>
+            <td class="ar-actions-cell">
+              <button
+                class="ar-btn-icon ar-btn-edit"
+                title="Edit record"
+                onclick="openEditModal('{{ r.student_id }}','{{ r.student_name }}','{{ r.roll_no }}','{{ r.date }}','{{ r.status }}','{{ r.time }}')"
+              ><i class="fas fa-edit"></i></button>
+              <button
+                class="ar-btn-icon ar-btn-delete"
+                title="Delete record"
+                onclick="openDeleteModal('{{ r.student_id }}','{{ r.student_name }}','{{ r.date }}')"
+              ><i class="fas fa-trash-alt"></i></button>
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
-    {% else %}
-      <p>No attendance records yet.</p>
-    {% endif %}
+
+      <!-- Empty state -->
+      <div class="ar-empty-state" id="emptyState" style="display:none;">
+        <i class="fas fa-inbox"></i>
+        <h3>No records found</h3>
+        <p>Try adjusting your filters or add a new attendance record above.</p>
+      </div>
+
+      {% if not records %}
+      <div class="ar-empty-state" id="noDataState">
+        <i class="fas fa-clipboard-list"></i>
+        <h3>No Attendance Records Yet</h3>
+        <p>Use the form above to add your first record.</p>
+      </div>
+      {% endif %}
+    </div>
   </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     EDIT MODAL
+════════════════════════════════════════════════════════════ -->
+<div class="modal" id="editModal">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h3><i class="fas fa-edit"></i> Edit Attendance Record</h3>
+      <button class="modal-close" onclick="closeModal('editModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div class="ar-edit-info" id="editInfo"></div>
+      <div class="ar-alert ar-alert-error" id="editError" style="display:none;"></div>
+      <form id="editForm" novalidate>
+        <input type="hidden" id="edit_student_id" name="student_id">
+        <input type="hidden" id="edit_date" name="date">
+
+        <div class="ar-form-grid ar-form-grid-2">
+          <div class="ar-field-group">
+            <label class="ar-label"><i class="fas fa-tag"></i> Status</label>
+            <div class="ar-status-pills">
+              <label class="ar-pill ar-pill-present">
+                <input type="radio" name="status" value="present"> <i class="fas fa-check"></i> Present
+              </label>
+              <label class="ar-pill ar-pill-absent">
+                <input type="radio" name="status" value="absent"> <i class="fas fa-times"></i> Absent
+              </label>
+              <label class="ar-pill ar-pill-late">
+                <input type="radio" name="status" value="late"> <i class="fas fa-clock"></i> Late
+              </label>
+            </div>
+          </div>
+          <div class="ar-field-group">
+            <label for="edit_time" class="ar-label">
+              <i class="fas fa-hourglass-start"></i> Time <span class="ar-optional">(optional)</span>
+            </label>
+            <input type="time" id="edit_time" name="time" class="ar-input">
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn btn-primary" id="editSubmitBtn" onclick="submitEdit()">
+        <i class="fas fa-save"></i> Save Changes
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     DELETE CONFIRM MODAL
+════════════════════════════════════════════════════════════ -->
+<div class="modal" id="deleteModal">
+  <div class="modal-content" style="max-width: 420px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-trash-alt" style="color:var(--danger-color);"></i> Delete Record</h3>
+      <button class="modal-close" onclick="closeModal('deleteModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="ar-delete-msg" id="deleteMsg"></p>
+      <input type="hidden" id="del_student_id">
+      <input type="hidden" id="del_date">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('deleteModal')">Cancel</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn" onclick="submitDelete()">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   ATTENDANCE RECORDS — Client-side JS
+   All API calls use fetch() to the Flask JSON endpoints.
+═══════════════════════════════════════════════════════════════ */
+
+// ── Seed JS with initial server-rendered records ──────────────
+// We maintain a client-side copy so filters & counts update
+// instantly without a page reload.
+let allRecords = [];
+
+document.querySelectorAll('#recordsBody .ar-row').forEach(tr => {
+  allRecords.push(rowToObj(tr));
+});
+
+// ── Toggle the Add-Record form panel ─────────────────────────
+const formToggle   = document.getElementById('formToggle');
+const formBody     = document.getElementById('formBody');
+const formToggleBtn= document.getElementById('formToggleBtn');
+
+formToggle.addEventListener('click', () => {
+  const open = formBody.style.display !== 'none';
+  formBody.style.display = open ? 'none' : 'block';
+  formToggleBtn.setAttribute('aria-expanded', String(!open));
+  formToggleBtn.querySelector('i').className = open
+    ? 'fas fa-chevron-down'
+    : 'fas fa-chevron-up';
+});
+
+// ── Reset form button ─────────────────────────────────────────
+document.getElementById('formResetBtn').addEventListener('click', () => {
+  document.getElementById('addAttendanceForm').reset();
+  clearFieldErrors();
+  hideAlert('formError');
+});
+
+// ── ADD RECORD — form submit ──────────────────────────────────
+document.getElementById('addAttendanceForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!validateAddForm()) return;
+
+  const btn = document.getElementById('addSubmitBtn');
+  setLoading(btn, true);
+  hideAlert('formError');
+
+  const formData = new FormData(e.target);
+
+  try {
+    const res = await fetch('/admin/attendance/add', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      // Prepend new row to the table & client array
+      prependRecord(data.record);
+      updateSummaryStats();
+      e.target.reset();
+      clearFieldErrors();
+    } else {
+      showAlert('formError', data.message);
+    }
+  } catch {
+    showAlert('formError', 'Network error. Please try again.');
+  } finally {
+    setLoading(btn, false);
+  }
+});
+
+// ── CLIENT-SIDE FILTERING ─────────────────────────────────────
+const filterName   = document.getElementById('filterName');
+const filterDate   = document.getElementById('filterDate');
+const filterStatus = document.getElementById('filterStatus');
+
+[filterName, filterDate, filterStatus].forEach(el => {
+  el.addEventListener('input', applyFilters);
+});
+
+document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+  filterName.value = '';
+  filterDate.value = '';
+  filterStatus.value = '';
+  applyFilters();
+});
+
+function applyFilters() {
+  const name   = filterName.value.trim().toLowerCase();
+  const date   = filterDate.value;
+  const status = filterStatus.value;
+
+  let visible = 0;
+  document.querySelectorAll('#recordsBody .ar-row').forEach(tr => {
+    const match =
+      (!name   || tr.dataset.studentName.includes(name)) &&
+      (!date   || tr.dataset.date === date)              &&
+      (!status || tr.dataset.status === status);
+
+    tr.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+
+  document.getElementById('recordCount').textContent = visible;
+  const empty = document.getElementById('emptyState');
+  empty.style.display = (visible === 0 && allRecords.length > 0) ? 'flex' : 'none';
+}
+
+// ── EDIT MODAL ────────────────────────────────────────────────
+function openEditModal(studentId, studentName, rollNo, date, status, time) {
+  document.getElementById('edit_student_id').value = studentId;
+  document.getElementById('edit_date').value        = date;
+  document.getElementById('edit_time').value        = time;
+
+  // Set radio
+  const radios = document.querySelectorAll('#editForm input[name="status"]');
+  radios.forEach(r => { r.checked = (r.value === status); });
+
+  document.getElementById('editInfo').innerHTML =
+    `<div class="ar-edit-student-info">
+       <div class="ar-avatar">${studentName[0].toUpperCase()}</div>
+       <div>
+         <strong>${studentName}</strong>
+         <span class="ar-roll-badge" style="margin-left:6px;">${rollNo}</span><br>
+         <small style="color:var(--text-secondary);">${date}</small>
+       </div>
+     </div>`;
+
+  hideAlert('editError');
+  openModal('editModal');
+}
+
+async function submitEdit() {
+  const btn = document.getElementById('editSubmitBtn');
+  setLoading(btn, true);
+  hideAlert('editError');
+
+  const form = document.getElementById('editForm');
+  const formData = new FormData(form);
+
+  try {
+    const res  = await fetch('/admin/attendance/edit', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      updateRowInTable(data.record);
+      updateSummaryStats();
+      closeModal('editModal');
+    } else {
+      showAlert('editError', data.message);
+    }
+  } catch {
+    showAlert('editError', 'Network error. Please try again.');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// ── DELETE MODAL ──────────────────────────────────────────────
+function openDeleteModal(studentId, studentName, date) {
+  document.getElementById('del_student_id').value = studentId;
+  document.getElementById('del_date').value        = date;
+  document.getElementById('deleteMsg').innerHTML   =
+    `Are you sure you want to delete the attendance record for
+     <strong>${studentName}</strong> on <strong>${date}</strong>?
+     <br><small style="color:var(--danger-color); margin-top:6px; display:block;">
+       This action cannot be undone.
+     </small>`;
+  openModal('deleteModal');
+}
+
+async function submitDelete() {
+  const btn = document.getElementById('deleteConfirmBtn');
+  setLoading(btn, true);
+
+  const sid  = document.getElementById('del_student_id').value;
+  const date = document.getElementById('del_date').value;
+
+  const formData = new FormData();
+  formData.append('student_id', sid);
+  formData.append('date', date);
+
+  try {
+    const res  = await fetch('/admin/attendance/delete', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      removeRowFromTable(sid, date);
+      updateSummaryStats();
+      closeModal('deleteModal');
+    } else {
+      showToast(data.message, 'error');
+    }
+  } catch {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// ── MODAL HELPERS ─────────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+// Close modals on backdrop click
+document.querySelectorAll('.modal').forEach(modal => {
+  modal.addEventListener('click', e => {
+    if (e.target === modal) modal.style.display = 'none';
+  });
+});
+
+// ── DOM MUTATION HELPERS ──────────────────────────────────────
+
+/** Prepend a new server-returned record object as a table row. */
+function prependRecord(r) {
+  allRecords.unshift(r);
+  const tbody = document.getElementById('recordsBody');
+  const tr    = buildRow(r);
+  tbody.insertBefore(tr, tbody.firstChild);
+  // animate entrance
+  tr.classList.add('ar-row-enter');
+  setTimeout(() => tr.classList.remove('ar-row-enter'), 400);
+
+  // hide initial "no data" banner
+  const noData = document.getElementById('noDataState');
+  if (noData) noData.style.display = 'none';
+
+  applyFilters();
+}
+
+/** Update an existing row's status / time cells in-place. */
+function updateRowInTable(r) {
+  const tr = findRow(r.student_id, r.date);
+  if (!tr) return;
+
+  // Update dataset
+  tr.dataset.status = r.status;
+  tr.dataset.time   = r.time;
+
+  // Update status badge cell
+  tr.querySelector('.ar-status-badge').className = `ar-status-badge ar-status-${r.status}`;
+  const icon = r.status === 'present' ? 'fa-check'
+             : r.status === 'absent'  ? 'fa-times'
+             :                          'fa-clock';
+  tr.querySelector('.ar-status-badge').innerHTML =
+    `<i class="fas ${icon}"></i> ${cap(r.status)}`;
+
+  // Update time cell
+  tr.querySelector('.ar-time-text').textContent = r.time || '—';
+
+  // Update onclick for edit button
+  const editBtn = tr.querySelector('.ar-btn-edit');
+  editBtn.setAttribute('onclick',
+    `openEditModal('${r.student_id}','${r.student_name}','${r.roll_no}','${r.date}','${r.status}','${r.time}')`);
+
+  // Update in allRecords array
+  const idx = allRecords.findIndex(x => x.student_id === r.student_id && x.date === r.date);
+  if (idx !== -1) allRecords[idx] = { ...allRecords[idx], ...r };
+
+  // Flash the row
+  tr.classList.add('ar-row-updated');
+  setTimeout(() => tr.classList.remove('ar-row-updated'), 600);
+}
+
+/** Remove a row from the table and allRecords array. */
+function removeRowFromTable(studentId, date) {
+  const tr = findRow(studentId, date);
+  if (!tr) return;
+
+  tr.classList.add('ar-row-exit');
+  setTimeout(() => tr.remove(), 350);
+  allRecords = allRecords.filter(r => !(r.student_id === studentId && r.date === date));
+  applyFilters();
+}
+
+function findRow(studentId, date) {
+  return document.querySelector(
+    `#recordsBody .ar-row[data-student-id="${studentId}"][data-date="${date}"]`
+  );
+}
+
+function buildRow(r) {
+  const tr = document.createElement('tr');
+  tr.className = 'ar-row';
+  tr.dataset.studentName = r.student_name.toLowerCase();
+  tr.dataset.date        = r.date;
+  tr.dataset.status      = r.status;
+  tr.dataset.studentId   = r.student_id;
+  tr.dataset.time        = r.time;
+  tr.dataset.roll        = r.roll_no;
+
+  const icon = r.status === 'present' ? 'fa-check'
+             : r.status === 'absent'  ? 'fa-times'
+             :                          'fa-clock';
+  tr.innerHTML = `
+    <td>
+      <div class="ar-student-cell">
+        <div class="ar-avatar">${r.student_name[0].toUpperCase()}</div>
+        <span class="ar-student-name">${r.student_name}</span>
+      </div>
+    </td>
+    <td><span class="ar-roll-badge">${r.roll_no}</span></td>
+    <td><span class="ar-date-text">${r.date}</span></td>
+    <td>
+      <span class="ar-status-badge ar-status-${r.status}">
+        <i class="fas ${icon}"></i> ${cap(r.status)}
+      </span>
+    </td>
+    <td><span class="ar-time-text">${r.time || '—'}</span></td>
+    <td class="ar-actions-cell">
+      <button class="ar-btn-icon ar-btn-edit" title="Edit"
+        onclick="openEditModal('${r.student_id}','${r.student_name}','${r.roll_no}','${r.date}','${r.status}','${r.time}')">
+        <i class="fas fa-edit"></i>
+      </button>
+      <button class="ar-btn-icon ar-btn-delete" title="Delete"
+        onclick="openDeleteModal('${r.student_id}','${r.student_name}','${r.date}')">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </td>`;
+  return tr;
+}
+
+function rowToObj(tr) {
+  return {
+    student_id:   tr.dataset.studentId,
+    student_name: tr.dataset.studentName,
+    date:         tr.dataset.date,
+    status:       tr.dataset.status,
+    time:         tr.dataset.time,
+    roll_no:      tr.dataset.roll,
+  };
+}
+
+// ── SUMMARY COUNTER (re-counts from current allRecords) ───────
+function updateSummaryStats() {
+  const total   = allRecords.length;
+  const present = allRecords.filter(r => r.status === 'present').length;
+  const absent  = allRecords.filter(r => r.status === 'absent').length;
+  const late    = allRecords.filter(r => r.status === 'late').length;
+
+  animateCount('statTotal',   total);
+  animateCount('statPresent', present);
+  animateCount('statAbsent',  absent);
+  animateCount('statLate',    late);
+}
+
+function animateCount(id, target) {
+  const el   = document.getElementById(id);
+  const start = parseInt(el.textContent, 10) || 0;
+  const diff  = target - start;
+  const steps = 20;
+  let step = 0;
+  const interval = setInterval(() => {
+    step++;
+    el.textContent = Math.round(start + (diff * step / steps));
+    if (step >= steps) clearInterval(interval);
+  }, 20);
+}
+
+// ── FORM VALIDATION ───────────────────────────────────────────
+function validateAddForm() {
+  clearFieldErrors();
+  let valid = true;
+
+  const student = document.getElementById('fs_student');
+  if (!student.value) { showFieldError('err_student', 'Please select a student.'); valid = false; }
+
+  const dateEl = document.getElementById('fs_date');
+  if (!dateEl.value) { showFieldError('err_date', 'Please select a date.'); valid = false; }
+
+  return valid;
+}
+
+function showFieldError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+
+function clearFieldErrors() {
+  document.querySelectorAll('.ar-field-err').forEach(el => {
+    el.textContent = '';
+    el.style.display = 'none';
+  });
+}
+
+// ── UI UTILITIES ──────────────────────────────────────────────
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`;
+  el.style.display = 'flex';
+}
+
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+function setLoading(btn, loading) {
+  if (loading) {
+    btn.dataset.originalHtml = btn.innerHTML;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+    btn.disabled  = true;
+  } else {
+    btn.innerHTML = btn.dataset.originalHtml || btn.innerHTML;
+    btn.disabled  = false;
+  }
+}
+
+function cap(str) { return str ? str[0].toUpperCase() + str.slice(1) : ''; }
+
+// ── ANIMATE STAT CARDS ON LOAD ────────────────────────────────
+document.querySelectorAll('.ar-stat-card').forEach((card, i) => {
+  card.style.opacity   = '0';
+  card.style.transform = 'translateY(20px)';
+  setTimeout(() => {
+    card.style.transition = 'all 0.4s ease';
+    card.style.opacity    = '1';
+    card.style.transform  = 'translateY(0)';
+  }, i * 100);
+});
+</script>
 {% endblock %}

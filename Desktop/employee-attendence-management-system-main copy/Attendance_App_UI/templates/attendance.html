@@ -20,8 +20,11 @@
             {% elif current_status == 'absent' %}
                 <i class="fas fa-times-circle"></i>
                 <span>Absent</span>
-            {% else %}
+            {% elif current_status == 'late' %}
                 <i class="fas fa-clock"></i>
+                <span>Late</span>
+            {% else %}
+                <i class="fas fa-minus-circle"></i>
                 <span>Not Marked</span>
             {% endif %}
         </div>
@@ -106,14 +109,25 @@
             <div class="timeline-item status-{{ record.status }}">
                 <div class="timeline-date">
                     {{ record.formatted_date }}
+                    {% if record.time %}
+                    <small style="display:block; color:var(--text-muted); font-size:0.75rem;">
+                        <i class="fas fa-clock"></i> {{ record.time }}
+                    </small>
+                    {% endif %}
                 </div>
                 <div class="timeline-status">
                     {% if record.status == 'present' %}
                         <i class="fas fa-check-circle"></i>
                         <span>Present</span>
-                    {% else %}
+                    {% elif record.status == 'absent' %}
                         <i class="fas fa-times-circle"></i>
                         <span>Absent</span>
+                    {% elif record.status == 'late' %}
+                        <i class="fas fa-clock"></i>
+                        <span>Late</span>
+                    {% else %}
+                        <i class="fas fa-minus-circle"></i>
+                        <span>{{ record.status | capitalize }}</span>
                     {% endif %}
                 </div>
             </div>

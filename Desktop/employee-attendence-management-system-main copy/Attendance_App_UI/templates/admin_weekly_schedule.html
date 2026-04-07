@@ -1,55 +1,345 @@
 {% extends 'base.html' %}
 
 {% block title %}Weekly Class Schedule - CrowdMuse{% endblock %}
-
-{% block page_title %}Weekly Class Schedule{% endblock %}
-
+{% block page_title %}Weekly Classes{% endblock %}
 {% block user_name %}{{ admin.username }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-grid">
-    <div class="quick-links">
-        <h3>
-            Classes for {{ week_start.strftime('%b %d, %Y') }}  {{ week_end.strftime('%b %d, %Y') }}
-        </h3>
-        <p style="margin-top: 6px; color: var(--text-secondary);">
-            View scheduled classes for the current week and mark attendance per class.
-        </p>
+<div class="ar-container">
 
-        {% if weekly_classes %}
-            <div style="margin-top: 16px; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px;">
-                {% for cls in weekly_classes %}
-                    <div style="background: var(--bg-primary); border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: var(--spacing-lg); box-shadow: var(--shadow-sm);">
-                        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;">
-                            <div>
-                                <h3 style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">
-                                    {{ cls.subject }}
-                                </h3>
-                                <p style="margin-top: 6px; color: var(--text-secondary);">
-                                    <i class="fas fa-calendar"></i>
-                                    <span style="margin-left: 6px;">{{ cls.formatted_date }} ({{ cls.date }})</span>
-                                </p>
-                                <p style="margin-top: 4px; color: var(--text-secondary);">
-                                    <i class="fas fa-clock"></i>
-                                    <span style="margin-left: 6px;">{{ cls.time }}</span>
-                                </p>
-                            </div>
-
-                            <a href="{{ url_for('admin_mark_attendance_view', class_id=cls.id) }}" class="btn btn-primary" style="white-space: nowrap;">
-                                <i class="fas fa-eye"></i> View
-                            </a>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% else %}
-            <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); margin-top: 16px; text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
-                <p>No classes scheduled for this week yet.</p>
-                <p style="margin-top: 6px; font-size: 0.9rem;">
-                    Tip: Add items to <code>data.json</code> under <code>classes</code> and <code>enrollments</code>.
-                </p>
-            </div>
-        {% endif %}
+  <!-- ══ Week header ═══════════════════════════════════════ -->
+  <div class="ar-card" style="overflow:visible;">
+    <div class="ar-card-header" style="flex-wrap:wrap; gap:12px;">
+      <div class="ar-card-title">
+        <i class="fas fa-calendar-week" style="color:var(--primary-color);"></i>
+        {{ week_start.strftime('%b %d') }} — {{ week_end.strftime('%b %d, %Y') }}
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-left:auto;">
+        <a href="{{ url_for('admin_class_new') }}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus"></i> Add Class
+        </a>
+      </div>
+      <span style="color:var(--text-secondary); font-size:0.875rem;">
+        <i class="fas fa-info-circle"></i>
+        {{ weekly_classes|length }} class{{ 'es' if weekly_classes|length != 1 else '' }} this week
+        &nbsp;·&nbsp;
+        {{ students|length }} student{{ 's' if students|length != 1 else '' }} registered
+      </span>
     </div>
+  </div>
+
+  <!-- ══ Class cards ════════════════════════════════════════ -->
+  {% if weekly_classes %}
+  <div class="wk-grid">
+    {% for cls in weekly_classes %}
+    {% set enrolled_ids = enrollments.get(cls.id|string, []) %}
+    <div class="wk-card" id="wk-card-{{ cls.id }}">
+
+      <!-- colour accent bar based on position -->
+      <div class="wk-accent" style="background: {{ ['linear-gradient(135deg,#3b82f6,#6366f1)',
+        'linear-gradient(135deg,#10b981,#06b6d4)',
+        'linear-gradient(135deg,#f59e0b,#ef4444)',
+        'linear-gradient(135deg,#8b5cf6,#ec4899)',
+        'linear-gradient(135deg,#14b8a6,#3b82f6)'][loop.index0 % 5] }};"></div>
+
+      <div class="wk-card-body">
+        <!-- Subject + badges -->
+        <div class="wk-subject">{{ cls.subject }}</div>
+        <div class="wk-meta">
+          <span class="wk-badge"><i class="fas fa-calendar-day"></i> {{ cls.formatted_date }}</span>
+          <span class="wk-badge"><i class="fas fa-clock"></i> {{ cls.time }}</span>
+        </div>
+
+        <!-- Enrolled count + avatars preview -->
+        <div class="wk-enrolled-row">
+          <div class="wk-avatar-stack" id="avatars-{{ cls.id }}">
+            {% for sid in enrolled_ids[:5] %}
+              {% set s = students | selectattr('id', 'equalto', sid|int) | first | default(none) %}
+              {% if s %}
+              <div class="wk-mini-avatar" title="{{ s.name }}">{{ s.name[:1]|upper }}</div>
+              {% endif %}
+            {% endfor %}
+            {% if enrolled_ids|length > 5 %}
+            <div class="wk-mini-avatar wk-more">+{{ enrolled_ids|length - 5 }}</div>
+            {% endif %}
+          </div>
+          <span class="wk-enrolled-count" id="ecount-{{ cls.id }}">
+            {{ enrolled_ids|length }} enrolled
+          </span>
+        </div>
+
+        <!-- Actions -->
+        <div class="wk-actions">
+          <a href="{{ url_for('admin_class_edit', class_id=cls.id) }}" class="btn btn-outline btn-sm" title="Edit this class timetable entry">
+            <i class="fas fa-pen"></i> Edit
+          </a>
+          <button class="btn btn-outline btn-sm"
+            onclick="openEnrollModal({{ cls.id }}, '{{ cls.subject | e }}')"
+            title="Manage which students attend this class">
+            <i class="fas fa-user-cog"></i> Enroll Students
+          </button>
+          <a href="{{ url_for('admin_mark_attendance_view', class_id=cls.id) }}"
+            class="btn btn-primary btn-sm">
+            <i class="fas fa-clipboard-check"></i> Mark Attendance
+          </a>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+
+  {% else %}
+  <div class="ar-card">
+    <div class="ar-empty-state">
+      <i class="fas fa-calendar-times"></i>
+      <h3>No Classes This Week</h3>
+      <p>Add classes under <code>classes</code> in <code>data.json</code>.</p>
+    </div>
+  </div>
+  {% endif %}
+
 </div>
+
+<!-- ══════════════════════════════════════════════════════════
+     ENROLL STUDENTS MODAL
+═════════════════════════════════════════════════════════════ -->
+<div class="modal" id="enrollModal">
+  <div class="modal-content" style="max-width:560px;">
+    <div class="modal-header">
+      <h3>
+        <i class="fas fa-user-cog" style="color:var(--primary-color);"></i>
+        Enroll Students — <span id="enrollModalSubject"></span>
+      </h3>
+      <button class="modal-close" onclick="closeModal('enrollModal')">&times;</button>
+    </div>
+
+    <div class="modal-body" style="padding-bottom:0;">
+      <!-- Toolbar: search + select-all -->
+      <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+        <div class="ar-search-wrap" style="flex:1; min-width:180px;">
+          <i class="fas fa-search ar-search-icon"></i>
+          <input type="text" id="enrollSearch" class="ar-input ar-search-input"
+            placeholder="Filter students…" oninput="filterEnrollList()">
+        </div>
+        <label class="wk-check-label" style="white-space:nowrap;">
+          <input type="checkbox" id="selectAllChk" onchange="toggleSelectAll(this.checked)">
+          <span>Select all</span>
+        </label>
+      </div>
+
+      <!-- Error banner -->
+      <div class="ar-alert ar-alert-error" id="enrollError" style="display:none;"></div>
+
+      <!-- Student checklist -->
+      <div class="wk-enroll-list" id="enrollList">
+        {% for s in students | sort(attribute='name') %}
+        <label class="wk-enroll-item" id="ei-{{ s.id }}" data-name="{{ s.name|lower }}">
+          <input type="checkbox" class="wk-chk" value="{{ s.id }}" id="chk-{{ s.id }}">
+          <div class="ar-avatar" style="width:32px;height:32px;font-size:0.8rem;
+            background:linear-gradient(135deg,var(--primary-color),var(--primary-dark));">
+            {{ s.name[:1]|upper }}
+          </div>
+          <div class="wk-enroll-info">
+            <strong>{{ s.name }}</strong>
+            <small>{{ s.roll_no }}</small>
+          </div>
+          <span class="wk-enrolled-tag" id="tag-{{ s.id }}" style="display:none;">
+            <i class="fas fa-check-circle"></i> Enrolled
+          </span>
+        </label>
+        {% endfor %}
+      </div>
+
+      <!-- Selected count footer -->
+      <div class="wk-enroll-footer">
+        <span id="selectedCount">0</span> students selected
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('enrollModal')">Cancel</button>
+      <button class="btn btn-primary" id="enrollSaveBtn" onclick="saveEnrollment()">
+        <i class="fas fa-save"></i> Save Enrollment
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+/* ════════════════════════════════════════════════════════
+   WEEKLY SCHEDULE + ENROLLMENT  — client-side JS
+════════════════════════════════════════════════════════ */
+
+// Seeded enrollment data from server (enrollments dict as JSON)
+const enrollmentsData = {{ enrollments | tojson }};
+
+// Currently-open class id
+let activeClassId = null;
+
+// ── Open the enrollment modal for a class ────────────────
+function openEnrollModal(classId, subject) {
+  activeClassId = classId;
+  document.getElementById('enrollModalSubject').textContent = subject;
+  document.getElementById('enrollSearch').value = '';
+  document.getElementById('selectAllChk').checked = false;
+  hideAlert('enrollError');
+
+  // Reset all checkboxes first
+  document.querySelectorAll('.wk-chk').forEach(chk => { chk.checked = false; });
+
+  // Pre-tick the currently enrolled students
+  const enrolled = (enrollmentsData[String(classId)] || []).map(String);
+  enrolled.forEach(sid => {
+    const chk = document.getElementById(`chk-${sid}`);
+    if (chk) chk.checked = true;
+  });
+
+  updateSelectedCount();
+  filterEnrollList(); // reset search filter
+  document.getElementById('enrollModal').style.display = 'flex';
+}
+
+// ── Filter the checklist by the search box ───────────────
+function filterEnrollList() {
+  const q = document.getElementById('enrollSearch').value.trim().toLowerCase();
+  let visible = 0;
+  document.querySelectorAll('.wk-enroll-item').forEach(item => {
+    const match = !q || item.dataset.name.includes(q);
+    item.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+}
+
+// ── Select / deselect all visible ────────────────────────
+function toggleSelectAll(checked) {
+  document.querySelectorAll('.wk-enroll-item').forEach(item => {
+    if (item.style.display === 'none') return;
+    const chk = item.querySelector('.wk-chk');
+    if (chk) chk.checked = checked;
+  });
+  updateSelectedCount();
+}
+
+// ── Keep the count footer live ────────────────────────────
+document.querySelectorAll('.wk-chk').forEach(chk => {
+  chk.addEventListener('change', updateSelectedCount);
+});
+
+function updateSelectedCount() {
+  const n = document.querySelectorAll('.wk-chk:checked').length;
+  document.getElementById('selectedCount').textContent = n;
+}
+
+// ── Save enrollment via API ───────────────────────────────
+async function saveEnrollment() {
+  if (!activeClassId) return;
+
+  const btn  = document.getElementById('enrollSaveBtn');
+  setLoading(btn, true);
+  hideAlert('enrollError');
+
+  // Collect checked student IDs
+  const checkedIds = [...document.querySelectorAll('.wk-chk:checked')].map(c => c.value);
+
+  const formData = new FormData();
+  checkedIds.forEach(sid => formData.append('student_ids', sid));
+
+  try {
+    const res  = await fetch(`/admin/classes/${activeClassId}/enrollments`, {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+
+    if (data.success) {
+      // Update local cache
+      enrollmentsData[String(activeClassId)] = checkedIds;
+
+      // Update the card's enrolled count badge live
+      const countEl = document.getElementById(`ecount-${activeClassId}`);
+      if (countEl) countEl.textContent = `${checkedIds.length} enrolled`;
+
+      // Refresh avatar stack
+      refreshAvatarStack(activeClassId, checkedIds);
+
+      showToast(data.message, 'success');
+      closeModal('enrollModal');
+    } else {
+      showAlert('enrollError', data.message);
+    }
+  } catch {
+    showAlert('enrollError', 'Network error. Please try again.');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// Refresh the mini-avatar stack on a class card after enrollment change
+function refreshAvatarStack(classId, enrolledIds) {
+  const stack = document.getElementById(`avatars-${classId}`);
+  if (!stack) return;
+
+  // Build name lookup from DOM checkboxes
+  const nameMap = {};
+  document.querySelectorAll('.wk-enroll-item').forEach(item => {
+    const chk = item.querySelector('.wk-chk');
+    const strong = item.querySelector('strong');
+    if (chk && strong) nameMap[chk.value] = strong.textContent.trim();
+  });
+
+  stack.innerHTML = '';
+  const preview = enrolledIds.slice(0, 5);
+  preview.forEach(sid => {
+    const name = nameMap[sid] || '?';
+    const div  = document.createElement('div');
+    div.className = 'wk-mini-avatar';
+    div.title     = name;
+    div.textContent = name[0].toUpperCase();
+    stack.appendChild(div);
+  });
+  if (enrolledIds.length > 5) {
+    const more = document.createElement('div');
+    more.className   = 'wk-mini-avatar wk-more';
+    more.textContent = `+${enrolledIds.length - 5}`;
+    stack.appendChild(more);
+  }
+}
+
+// ── Generic helpers ────────────────────────────────────────
+function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+});
+
+function setLoading(btn, on) {
+  if (on) { btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; btn.disabled = true; }
+  else    { btn.innerHTML = btn.dataset.orig || btn.innerHTML; btn.disabled = false; }
+}
+
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`; el.style.display = 'flex'; }
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+
+// Animate cards on load
+document.querySelectorAll('.wk-card').forEach((c, i) => {
+  c.style.opacity = '0';
+  c.style.transform = 'translateY(20px)';
+  setTimeout(() => {
+    c.style.transition = 'all 0.4s ease';
+    c.style.opacity = '1';
+    c.style.transform = 'translateY(0)';
+  }, i * 80);
+});
+</script>
 {% endblock %}

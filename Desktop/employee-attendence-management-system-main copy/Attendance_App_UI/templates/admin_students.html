@@ -1,41 +1,425 @@
 {% extends 'base.html' %}
 
 {% block title %}Manage Students - CrowdMuse{% endblock %}
-
 {% block page_title %}Manage Students{% endblock %}
-
 {% block user_name %}{{ admin.username }}{% endblock %}
 
 {% block content %}
-<div class="dashboard-grid">
-    <h2>All Students</h2>
-    {% if students %}
-        <div style="background: var(--bg-primary); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm);">
-            <table class="data-table" style="width: 100%; border-collapse: collapse;">
-                <thead style="background-color: var(--bg-tertiary); border-bottom: 1px solid var(--border-color);">
-                    <tr>
-                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">ID</th>
-                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Name</th>
-                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Roll Number</th>
-                        <th style="padding: var(--spacing-lg); text-align: left; font-weight: 600; color: var(--text-primary);">Email</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for student in students %}
-                        <tr style="border-bottom: 1px solid var(--border-color); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--bg-tertiary)'" onmouseout="this.style.backgroundColor='transparent'">
-                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.id }}</td>
-                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.name }}</td>
-                            <td style="padding: var(--spacing-lg); color: var(--text-primary);">{{ student.roll_no }}</td>
-                            <td style="padding: var(--spacing-lg); color: var(--text-secondary);">{{ student.email }}</td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    {% else %}
-        <div style="background: var(--bg-primary); border-radius: var(--radius-lg); padding: var(--spacing-xl); text-align: center; color: var(--text-muted); box-shadow: var(--shadow-sm);">
-            <p>No students registered yet.</p>
-        </div>
-    {% endif %}
+<div class="ar-container">
+
+  <!-- ── Page header ─────────────────────────────────────── -->
+  <div class="ar-card" style="overflow:visible;">
+    <div class="ar-card-header">
+      <div class="ar-card-title">
+        <i class="fas fa-users" style="color:var(--primary-color);"></i>
+        All Students
+        <span class="ar-record-count" id="studentCount">{{ students|length }}</span>
+      </div>
+      <button class="btn btn-primary" id="openAddModal">
+        <i class="fas fa-user-plus"></i> Add Student
+      </button>
+    </div>
+
+    <!-- Search bar -->
+    <div class="ar-filter-bar">
+      <div class="ar-search-wrap">
+        <i class="fas fa-search ar-search-icon"></i>
+        <input
+          type="text"
+          id="searchStudents"
+          class="ar-input ar-search-input"
+          placeholder="Search by name, roll no or email…"
+        >
+      </div>
+      <button class="btn btn-outline btn-sm" id="clearSearch">
+        <i class="fas fa-times"></i> Clear
+      </button>
+    </div>
+
+    <!-- Table -->
+    <div class="ar-table-wrap">
+      <table class="ar-table" id="studentsTable">
+        <thead>
+          <tr>
+            <th style="width:60px;">ID</th>
+            <th>Student</th>
+            <th>Roll No</th>
+            <th>Email</th>
+            <th class="ar-th-actions">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="studentsBody">
+          {% for s in students %}
+          <tr
+            class="ar-row"
+            id="student-row-{{ s.id }}"
+            data-search="{{ s.name|lower }} {{ s.roll_no|lower }} {{ s.email|lower }}"
+          >
+            <td>
+              <span class="ar-roll-badge">#{{ s.id }}</span>
+            </td>
+            <td>
+              {% set gradients = ['linear-gradient(135deg,#3b82f6,#2563eb)', 'linear-gradient(135deg,#10b981,#059669)', 'linear-gradient(135deg,#8b5cf6,#7c3aed)', 'linear-gradient(135deg,#f59e0b,#d97706)'] %}
+              {% set grad = gradients[loop.index0 % 4] %}
+              <div class="ar-student-cell">
+                <div class="ar-avatar" style="background: {{ grad }};">
+                  {{ s.name[:1]|upper }}
+                </div>
+                <span class="ar-student-name">{{ s.name }}</span>
+              </div>
+            </td>
+            <td><span class="ar-roll-badge">{{ s.roll_no }}</span></td>
+            <td style="color:var(--text-secondary); font-size:0.875rem;">{{ s.email }}</td>
+            <td class="ar-actions-cell">
+              <button
+                class="ar-btn-icon ar-btn-delete"
+                title="Delete student"
+                onclick="openDeleteModal('{{ s.id }}', '{{ s.name }}')"
+              ><i class="fas fa-trash-alt"></i></button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <!-- No results -->
+      <div class="ar-empty-state" id="noResults" style="display:none;">
+        <i class="fas fa-search"></i>
+        <h3>No students match your search</h3>
+        <p>Try a different name, roll number, or email.</p>
+      </div>
+
+      {% if not students %}
+      <div class="ar-empty-state">
+        <i class="fas fa-users-slash"></i>
+        <h3>No Students Yet</h3>
+        <p>Add your first student using the button above.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
 </div>
+
+<!-- ════════════════════════════════════════════════════════
+     ADD STUDENT MODAL
+════════════════════════════════════════════════════════ -->
+<div class="modal" id="addStudentModal">
+  <div class="modal-content" style="max-width:520px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-user-plus" style="color:var(--primary-color);"></i> Add New Student</h3>
+      <button class="modal-close" onclick="closeModal('addStudentModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <!-- Error banner -->
+      <div class="ar-alert ar-alert-error" id="addError" style="display:none;"></div>
+
+      <form id="addStudentForm" novalidate>
+        <div class="ar-form-grid" style="grid-template-columns:1fr 1fr;">
+
+          <!-- Full Name -->
+          <div class="ar-field-group" style="grid-column:1/-1;">
+            <label for="add_name" class="ar-label">
+              <i class="fas fa-user"></i> Full Name <span class="ar-required">*</span>
+            </label>
+            <input type="text" id="add_name" name="name" class="ar-input"
+              placeholder="e.g. Riya Sharma" required>
+            <span class="ar-field-err" id="err_name"></span>
+          </div>
+
+          <!-- Roll Number -->
+          <div class="ar-field-group">
+            <label for="add_roll" class="ar-label">
+              <i class="fas fa-id-badge"></i> Roll No <span class="ar-required">*</span>
+            </label>
+            <input type="text" id="add_roll" name="roll_no" class="ar-input"
+              placeholder="e.g. CS216" required>
+            <span class="ar-field-err" id="err_roll"></span>
+          </div>
+
+          <!-- Email -->
+          <div class="ar-field-group">
+            <label for="add_email" class="ar-label">
+              <i class="fas fa-envelope"></i> Email <span class="ar-required">*</span>
+            </label>
+            <input type="email" id="add_email" name="email" class="ar-input"
+              placeholder="student@example.com" required>
+            <span class="ar-field-err" id="err_email"></span>
+          </div>
+
+          <!-- Password -->
+          <div class="ar-field-group" style="grid-column:1/-1;">
+            <label for="add_password" class="ar-label">
+              <i class="fas fa-lock"></i> Password <span class="ar-required">*</span>
+            </label>
+            <div style="position:relative;">
+              <input type="password" id="add_password" name="password" class="ar-input"
+                placeholder="Set a login password" required style="padding-right:2.5rem;">
+              <button type="button" id="togglePwd"
+                style="position:absolute;right:10px;top:50%;transform:translateY(-50%);
+                       background:none;border:none;cursor:pointer;color:var(--text-muted);">
+                <i class="fas fa-eye" id="pwdIcon"></i>
+              </button>
+            </div>
+            <span class="ar-field-err" id="err_password"></span>
+          </div>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('addStudentModal')">Cancel</button>
+      <button class="btn btn-primary" id="addSubmitBtn" onclick="submitAddStudent()">
+        <i class="fas fa-user-plus"></i> Add Student
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════
+     DELETE CONFIRM MODAL
+════════════════════════════════════════════════════════ -->
+<div class="modal" id="deleteStudentModal">
+  <div class="modal-content" style="max-width:420px;">
+    <div class="modal-header">
+      <h3><i class="fas fa-trash-alt" style="color:var(--danger-color);"></i> Delete Student</h3>
+      <button class="modal-close" onclick="closeModal('deleteStudentModal')">&times;</button>
+    </div>
+    <div class="modal-body">
+      <p class="ar-delete-msg" id="deleteMsg"></p>
+      <input type="hidden" id="del_student_id">
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('deleteStudentModal')">Cancel</button>
+      <button class="btn btn-danger" id="deleteConfirmBtn" onclick="submitDeleteStudent()">
+        <i class="fas fa-trash-alt"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+<script>
+/* ═══════════════════════════════════════════════
+   MANAGE STUDENTS — client-side JS
+   All mutations use fetch() → JSON API endpoints
+═══════════════════════════════════════════════ */
+
+// ── Live search / filter ──────────────────────
+const searchInput = document.getElementById('searchStudents');
+const clearBtn    = document.getElementById('clearSearch');
+
+searchInput.addEventListener('input', filterStudents);
+clearBtn.addEventListener('click', () => { searchInput.value = ''; filterStudents(); });
+
+function filterStudents() {
+  const q       = searchInput.value.trim().toLowerCase();
+  let   visible = 0;
+
+  document.querySelectorAll('#studentsBody .ar-row').forEach(tr => {
+    const match = !q || tr.dataset.search.includes(q);
+    tr.style.display = match ? '' : 'none';
+    if (match) visible++;
+  });
+
+  document.getElementById('studentCount').textContent = visible;
+  const noResults = document.getElementById('noResults');
+  if (noResults) noResults.style.display = visible === 0 ? 'flex' : 'none';
+}
+
+// ── Add Student modal ─────────────────────────
+document.getElementById('openAddModal').addEventListener('click', () => {
+  document.getElementById('addStudentForm').reset();
+  clearFieldErrors(['err_name','err_roll','err_email','err_password']);
+  hideAlert('addError');
+  openModal('addStudentModal');
+});
+
+// Show/hide password toggle
+document.getElementById('togglePwd').addEventListener('click', () => {
+  const inp  = document.getElementById('add_password');
+  const icon = document.getElementById('pwdIcon');
+  const show = inp.type === 'password';
+  inp.type   = show ? 'text' : 'password';
+  icon.className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+});
+
+async function submitAddStudent() {
+  // Client-side validation
+  const name     = document.getElementById('add_name').value.trim();
+  const roll     = document.getElementById('add_roll').value.trim();
+  const email    = document.getElementById('add_email').value.trim();
+  const password = document.getElementById('add_password').value.trim();
+
+  clearFieldErrors(['err_name','err_roll','err_email','err_password']);
+  hideAlert('addError');
+
+  let valid = true;
+  if (!name)                            { showFieldError('err_name',     'Name is required.');               valid = false; }
+  if (!roll)                            { showFieldError('err_roll',     'Roll number is required.');        valid = false; }
+  if (!email || !email.includes('@'))   { showFieldError('err_email',    'A valid email is required.');      valid = false; }
+  if (!password)                        { showFieldError('err_password', 'Password is required.');           valid = false; }
+  if (!valid) return;
+
+  const btn = document.getElementById('addSubmitBtn');
+  setLoading(btn, true);
+
+  const formData = new FormData(document.getElementById('addStudentForm'));
+
+  try {
+    const res  = await fetch('/admin/students/add', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      closeModal('addStudentModal');
+      appendStudentRow(data.student);
+    } else {
+      showAlert('addError', data.message);
+    }
+  } catch {
+    showAlert('addError', 'Network error. Please try again.');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// ── Delete Student modal ──────────────────────
+function openDeleteModal(studentId, studentName) {
+  document.getElementById('del_student_id').value = studentId;
+  document.getElementById('deleteMsg').innerHTML  =
+    `Are you sure you want to permanently delete
+     <strong>${studentName}</strong>?
+     <br><small style="color:var(--danger-color);display:block;margin-top:6px;">
+       This will also remove all their attendance records.
+     </small>`;
+  openModal('deleteStudentModal');
+}
+
+async function submitDeleteStudent() {
+  const sid = document.getElementById('del_student_id').value;
+  const btn = document.getElementById('deleteConfirmBtn');
+  setLoading(btn, true);
+
+  const formData = new FormData();
+  formData.append('student_id', sid);
+
+  try {
+    const res  = await fetch('/admin/students/delete', { method: 'POST', body: formData });
+    const data = await res.json();
+
+    if (data.success) {
+      showToast(data.message, 'success');
+      removeStudentRow(sid);
+      closeModal('deleteStudentModal');
+    } else {
+      showToast(data.message, 'error');
+    }
+  } catch {
+    showToast('Network error. Please try again.', 'error');
+  } finally {
+    setLoading(btn, false);
+  }
+}
+
+// ── DOM helpers ───────────────────────────────
+
+const AVATAR_GRADIENTS = [
+  'linear-gradient(135deg,#3b82f6,#2563eb)',
+  'linear-gradient(135deg,#10b981,#059669)',
+  'linear-gradient(135deg,#8b5cf6,#7c3aed)',
+  'linear-gradient(135deg,#f59e0b,#d97706)',
+];
+
+/** Append a newly-created student as a table row. */
+function appendStudentRow(s) {
+  const tbody = document.getElementById('studentsBody');
+  const grad  = AVATAR_GRADIENTS[s.id % AVATAR_GRADIENTS.length];
+  const tr    = document.createElement('tr');
+  tr.className       = 'ar-row';
+  tr.id              = `student-row-${s.id}`;
+  tr.dataset.search  = `${s.name.toLowerCase()} ${s.roll_no.toLowerCase()} ${s.email.toLowerCase()}`;
+
+  tr.innerHTML = `
+    <td><span class="ar-roll-badge">#${s.id}</span></td>
+    <td>
+      <div class="ar-student-cell">
+        <div class="ar-avatar" style="background:${grad};">${s.name[0].toUpperCase()}</div>
+        <span class="ar-student-name">${s.name}</span>
+      </div>
+    </td>
+    <td><span class="ar-roll-badge">${s.roll_no}</span></td>
+    <td style="color:var(--text-secondary);font-size:0.875rem;">${s.email}</td>
+    <td class="ar-actions-cell">
+      <button class="ar-btn-icon ar-btn-delete" title="Delete student"
+        onclick="openDeleteModal('${s.id}','${s.name}')">
+        <i class="fas fa-trash-alt"></i>
+      </button>
+    </td>`;
+
+  tbody.appendChild(tr);
+  tr.classList.add('ar-row-enter');
+  setTimeout(() => tr.classList.remove('ar-row-enter'), 400);
+
+  // Update count
+  updateCount(1);
+  filterStudents(); // re-apply any active search
+}
+
+/** Remove a student row from the table. */
+function removeStudentRow(studentId) {
+  const tr = document.getElementById(`student-row-${studentId}`);
+  if (!tr) return;
+  tr.classList.add('ar-row-exit');
+  setTimeout(() => { tr.remove(); filterStudents(); }, 350);
+  updateCount(-1);
+}
+
+function updateCount(delta) {
+  const el  = document.getElementById('studentCount');
+  el.textContent = Math.max(0, parseInt(el.textContent, 10) + delta);
+}
+
+// ── Generic modal helpers ─────────────────────
+function openModal(id)  { document.getElementById(id).style.display = 'flex'; }
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+document.querySelectorAll('.modal').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
+});
+
+// ── Loading state ─────────────────────────────
+function setLoading(btn, on) {
+  if (on) { btn.dataset.orig = btn.innerHTML; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…'; btn.disabled = true; }
+  else    { btn.innerHTML = btn.dataset.orig || btn.innerHTML; btn.disabled = false; }
+}
+
+// ── Alert helpers ─────────────────────────────
+function showAlert(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${msg}`; el.style.display = 'flex'; }
+}
+function hideAlert(id) {
+  const el = document.getElementById(id);
+  if (el) el.style.display = 'none';
+}
+function showFieldError(id, msg) {
+  const el = document.getElementById(id);
+  if (el) { el.textContent = msg; el.style.display = 'block'; }
+}
+function clearFieldErrors(ids) {
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = ''; el.style.display = 'none'; }
+  });
+}
+
+// ── Animate stat cards in on load ─────────────
+document.querySelectorAll('.ar-stat-card').forEach((c, i) => {
+  c.style.opacity = '0'; c.style.transform = 'translateY(20px)';
+  setTimeout(() => { c.style.transition='all .4s ease'; c.style.opacity='1'; c.style.transform='translateY(0)'; }, i * 100);
+});
+</script>
 {% endblock %}
