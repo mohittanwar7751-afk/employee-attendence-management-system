@@ -360,9 +360,77 @@ def campus():
 
 @app.route('/reports')
 def reports():
-    # Keep the original logic but load from `load_data()`
-    # (Simplified here to save space, copy your previous reports logic but add `data = load_data()` at the top)
-    return redirect(url_for('dashboard'))
+    data = load_data()
+    current_student = get_current_student(data)
+    if not current_student:
+        return redirect(url_for('login'))
+
+    sid = str(current_student['id'])
+    merged = _get_merged_student_records(data, sid)
+
+    total_days = len(merged)
+    present_days = sum(1 for r in merged.values() if r['status'] == 'present')
+    absent_days = sum(1 for r in merged.values() if r['status'] == 'absent')
+    late_days = sum(1 for r in merged.values() if r['status'] == 'late')
+    percentage = round((present_days / total_days * 100), 1) if total_days else 0
+
+    # Monthly breakdown
+    monthly_bucket: Dict[str, Dict[str, int]] = {}
+    for date_str, rec in merged.items():
+        try:
+            dt = datetime.strptime(date_str, '%Y-%m-%d')
+        except ValueError:
+            continue
+        key = dt.strftime('%b %Y')
+        b = monthly_bucket.setdefault(key, {'present': 0, 'absent': 0, 'late': 0, 'total': 0})
+        b['total'] += 1
+        if rec['status'] == 'present':
+            b['present'] += 1
+        elif rec['status'] == 'absent':
+            b['absent'] += 1
+        elif rec['status'] == 'late':
+            b['late'] += 1
+
+    monthly_breakdown = []
+    for month in sorted(monthly_bucket.keys(), key=lambda m: datetime.strptime(m, '%b %Y')):
+        b = monthly_bucket[month]
+        month_pct = round((b['present'] / b['total'] * 100), 1) if b['total'] else 0
+        monthly_breakdown.append({
+            'month': month,
+            'present': b['present'],
+            'absent': b['absent'],
+            'late': b['late'],
+            'total': b['total'],
+            'percentage': month_pct,
+        })
+
+    # Daily records (newest first)
+    daily_records = []
+    for date_str in sorted(merged.keys(), reverse=True):
+        rec = merged[date_str]
+        try:
+            formatted = datetime.strptime(date_str, '%Y-%m-%d').strftime('%B %d, %Y')
+        except ValueError:
+            formatted = date_str
+        daily_records.append({
+            'date': date_str,
+            'formatted_date': formatted,
+            'status': rec['status'],
+            'time': rec.get('time', ''),
+        })
+
+    stats = {
+        'student': current_student,
+        'total_days': total_days,
+        'present_days': present_days,
+        'absent_days': absent_days,
+        'late_days': late_days,
+        'percentage': percentage,
+        'monthly_breakdown': monthly_breakdown,
+        'daily_records': daily_records,
+    }
+
+    return render_template('reports.html', stats=stats)
 
 
 @app.route('/timetable')
